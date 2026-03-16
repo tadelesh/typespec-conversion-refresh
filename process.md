@@ -93,4 +93,4 @@ Wait for the pipeline run to complete. Check recent PR on https://github.com/Azu
 
 7. Check changelog in the PR
 
-Extract the latest version's changelog from the PR and check each item to see if it is acceptable according to `documentation/sdk-breaking-changes-guide-migration.md` under sdk repo. If there is any undocumented items, add "ManualReview" to "Go" column for this row.
+Extract the latest version's changelog from the PR and check each item to see if it is acceptable according to `documentation/development/breaking-changes/sdk-breaking-changes-guide-migration.md` under sdk repo. If there is any undocumented items, add "ManualReview" to "Go" column for this row. If all items are acceptable, update "Go" column to "Done".
