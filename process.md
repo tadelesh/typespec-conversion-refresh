@@ -89,7 +89,7 @@ Else, run the pipeline https://dev.azure.com/azure-sdk/internal/_build?definitio
 - Set "Create SDK pull request" to "true"
 Use the token from Azure CLI to call the REST API of the "dev.azure.com" endpoint (preferably using `az rest` and let Azure CLI handle the token, with `Content-Type=application/json` via `--header`)
 
-Wait for the pipeline run to complete. Check recent PR on https://github.com/Azure/azure-sdk-for-go/pulls, find "[AutoPR sdk-SdkFolder]*", add the link of PR to "SdkPr" column.
+Wait for the pipeline run to complete. Check recent PR on https://github.com/Azure/azure-sdk-for-go/pulls, find "[AutoPR sdk-SdkFolder]*", replace "AutoPR" with "Refresh" for the PR title, and add the link of PR to "SdkPr" column.
 
 8. Check changelog in the PR
 
