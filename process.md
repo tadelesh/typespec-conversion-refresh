@@ -18,7 +18,7 @@ Following values in "Go" column is a terminal state. Skip process on these rows.
 - **AlreadyTypeSpec**
   Go SDK is already generated and released from TypeSpec. We don't need to refresh again.
 - **Done**
-  We've refreshed the SDK from TypeSpec.
+  We've refreshed the SDK release from TypeSpec.
 - **NoSpec**
   No TypeSpec source found. Nothing we can do.
 - **VersionNotEqual**
@@ -76,9 +76,9 @@ Else, check the folder of "SdkFolder" column in sdk repo. The API version could 
 
 6. Compare `SpecApiVersion` with `SdkApiVersion`
 
-Compare the API version in "SpecApiVersion" column with "SdkApiVersion" column. If they are not same, add "VersionNotEqual" to "Go" column, and skip all the following steps for this row.
+Compare the API version in "SpecApiVersion" column with "SdkApiVersion" column. If they are not same, add "VersionNotEqual" to "Go" column.
 
-7. Generate SDK {sdk} via pipeline
+7. Generate SDK via pipeline
 
 If "SdkPr" column has a PR link, it means we have already generated the SDK. We can skip to next step.
 
@@ -89,8 +89,20 @@ Else, run the pipeline https://dev.azure.com/azure-sdk/internal/_build?definitio
 - Set "Create SDK pull request" to "true"
 Use the token from Azure CLI to call the REST API of the "dev.azure.com" endpoint (preferably using `az rest` and let Azure CLI handle the token, with `Content-Type=application/json` via `--header`)
 
-Wait for the pipeline run to complete. Check recent PR on https://github.com/Azure/azure-sdk-for-go/pulls, find "[AutoPR sdk-SdkFolder]*", replace "AutoPR" with "Refresh" for the PR title, and add the link of PR to "SdkPr" column.
+Wait for the pipeline run to complete. Check recent PR on https://github.com/Azure/azure-sdk-for-go/pulls, find "[AutoPR sdk-{SdkFolder}]*", replace "AutoPR" with "Refresh" for the PR title, and add the link of PR to "SdkPr" column.
 
-8. Check changelog in the PR
+8. Generate SDK with Swagger for "VersionNotEqual" services
 
-Extract the latest version's changelog from the PR and check each item to see if it is acceptable according to `documentation/development/breaking-changes/sdk-breaking-changes-guide-migration.md` under sdk repo. If there is any undocumented items, add "ManualReview" to "Go" column for this row. If all items are acceptable, update "Go" column to "ReadyReview".
+If "SdkChangelog" column has a link, it means we have already generated SDK with Swagger spec. We can skip to next step.
+
+For the services with "VersionNotEqual" status, we need to generate SDK with Swagger spec.
+
+Follow these steps to generate SDK with Swagger spec:
+1) Go to the folder of "tspconfig" column in specs repo, check the commit history and find the commit with keyword "migration" that first introduced this TypeSpec config file. Get the commit ID before that commit and add it to "SpecCommit" column.
+2) Based on this commit ID, check the `specification/{SpecFolder}/resource-manager/readme.md` file. Find pattern like `### Tag: package-{SpecApiVersion}` and extract the whole tag into the "SwaggerTag" column.
+3) Go to the folder of "SdkFolder" column in sdk repo, edit the `autorest.md` file: add or update the tag in the yaml to `tag: {SwaggerTag}`.
+4) Go to the sdk repo root folder, run `generator release-v2 c:/w/azure-sdk-for-go  c:/w/azure-rest-api-specs {service} {armservice} --skip-generate-example --spec-commit-hash={SpecCommit}`. `{service}` and `{armservice}` could be extracted from "SdkFolder" column. Push the new created branch to remote. Put the link of the `CHANGELOG.md` file from this new branch to "SdkChangelog" column.
+
+<!-- 9. Check changelog in the PR
+
+Extract the latest version's changelog from the PR and check each item to see if it is acceptable according to `documentation/development/breaking-changes/sdk-breaking-changes-guide-migration.md` under sdk repo. If there is any undocumented items, add "ManualReview" to "Go" column for this row. If all items are acceptable, update "Go" column to "ReadyReview". -->
