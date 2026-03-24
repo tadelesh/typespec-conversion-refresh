@@ -15,14 +15,12 @@ The status data is the "releases.csv" file.
 
 Following values in "Go" column is a terminal state. Skip process on these rows.
 
-- **AlreadyTypeSpec**
-  Go SDK is already generated and released from TypeSpec. We don't need to refresh again.
 - **Done**
   We've refreshed the SDK release from TypeSpec.
 - **NoSpec**
   No TypeSpec source found. Nothing we can do.
-- **VersionNotEqual**
-  Version mismatch between SpecApiVersion and SdkApiVersion.
+- **ManualReview**
+  There are some problems we cannot automatically handle. Manual review is needed.
 
 ## Process
 
@@ -40,17 +38,19 @@ Add the relative path (from specs repo) to the "tspconfig" column.
 
 If no "tspconfig.yaml" is found, add "NoSpec" to "Go" column, and skip all the following steps for this row.
 
-2. Find generated SDK folder and update the "SdkFolder" column
+3. Find generated SDK folder and update the "SdkFolder" column
 If "SdkFolder" column is existing, it means we have already found the generated SDK folder for this service. We can skip to next step.
 
 Else, read the `tspconfig.yaml` file found in last step, check the `options/"@azure-tools/typespec-go"/module` property. Resolve the value if it has variable reference.
 Extract folder `sdk/resourcemangager/**/**` according to the module path and put it in "SdkFolder" column.
 
-3. Check if the Go SDK is already generated from TypeSpec
+4. Check if the Go SDK is already generated from TypeSpec
 
-If there is a `tsp-location.yaml` file under the `SdkFolder` path, it means the Go SDK has already been released from TypeSpec. Add "AlreadyTypeSpec" to "Go" column, and skip all the following steps for this row.
+If there is a `tsp-location.yaml` file under the `SdkFolder` path, it means the Go SDK has already been released from TypeSpec. Add "AlreadyTypeSpec" to "Go" column.
+Then check if there is a tag existed with `sdk/resourcemanager/{service}/{armmodule}/v{<latest_version>}`. `{service}` and `{armmodule}` can be extracted from "SdkFolder" column. `{latest_version}` can be extracted from the latest version in `CHANGELOG.md` file.
+If such a tag exists, add "Done" to "Go" column. Skip all the following steps for this row.
 
-4. Find the first conversion API version for the service, and add it to "SpecApiVersion" column
+5. Find the first conversion API version for the service, and add it to "SpecApiVersion" column
 
 If "SpecApiVersion" column is existing, it means we have already found the API version for this service. We can skip to next step.
 
@@ -68,17 +68,17 @@ enum Versions {
   ...
 }
 ```
-5. Find SDK API version and update the "SdkApiVersion" column
+6. Find SDK API version and update the "SdkApiVersion" column
 
 If "SdkApiVersion" column is existing, it means we have already found the SDK API version for this service. We can skip to next step.
 
 Else, check the folder of "SdkFolder" column in sdk repo. The API version could be found in the comment of any operation with formats like `// Generated from API version <api-version>` in `xxx_client.go` file. Add the API version to "SdkApiVersion" column.
 
-6. Compare `SpecApiVersion` with `SdkApiVersion`
+7. Compare `SpecApiVersion` with `SdkApiVersion`
 
 Compare the API version in "SpecApiVersion" column with "SdkApiVersion" column. If they are not same, add "VersionNotEqual" to "Go" column.
 
-7. Generate SDK via pipeline
+8. Generate SDK via pipeline
 
 If "SdkPr" column has a PR link, it means we have already generated the SDK. We can skip to next step.
 
@@ -91,18 +91,23 @@ Use the token from Azure CLI to call the REST API of the "dev.azure.com" endpoin
 
 Wait for the pipeline run to complete. Check recent PR on https://github.com/Azure/azure-sdk-for-go/pulls, find "[AutoPR sdk-{SdkFolder}]*", replace "AutoPR" with "Refresh" for the PR title, and add the link of PR to "SdkPr" column.
 
-8. Generate SDK with Swagger for "VersionNotEqual" services
+9. Generate SDK with Swagger for "VersionNotEqual" services
 
 If "SdkChangelog" column has a link, it means we have already generated SDK with Swagger spec. We can skip to next step.
 
 For the services with "VersionNotEqual" status, we need to generate SDK with Swagger spec.
 
 Follow these steps to generate SDK with Swagger spec:
-1) Go to the folder of "tspconfig" column in specs repo, check the commit history and find the commit with keyword "migration" that first introduced this TypeSpec config file. Get the commit ID before that commit and add it to "SpecCommit" column.
-2) Based on this commit ID, check the `specification/{SpecFolder}/resource-manager/readme.md` file. Find pattern like `### Tag: package-{SpecApiVersion}` and extract the whole tag into the "SwaggerTag" column.
+1) Go to the folder of "tspconfig" column in specs repo, find the commit this config is first created. Go to the "Spec Folder" in specs repo, get the -1 commit ID of that commit and add it to "SpecCommit" column.
+2) Based on this commit ID, check the `specification/{SpecFolder}/resource-manager/readme.md` file. Use "SpecApiVersion" to find pattern like `### Tag: package-{SpecApiVersion}` and extract the whole tag into the "SwaggerTag" column. If there is no such pattern, use the latest tag in the `readme.md` file.
 3) Go to the folder of "SdkFolder" column in sdk repo, edit the `autorest.md` file: add or update the tag in the yaml to `tag: {SwaggerTag}`.
 4) Go to the sdk repo root folder, run `generator release-v2 c:/w/azure-sdk-for-go  c:/w/azure-rest-api-specs {service} {armservice} --skip-generate-example --spec-commit-hash={SpecCommit}`. `{service}` and `{armservice}` could be extracted from "SdkFolder" column. Push the new created branch to remote. Put the link of the `CHANGELOG.md` file from this new branch to "SdkChangelog" column.
+5) Leave a comment in the "SdkPr" with the link of "SdkChangelog" column.
+6) After all, you need to go back to main for the sdk repo.
 
 <!-- 9. Check changelog in the PR
 
 Extract the latest version's changelog from the PR and check each item to see if it is acceptable according to `documentation/development/breaking-changes/sdk-breaking-changes-guide-migration.md` under sdk repo. If there is any undocumented items, add "ManualReview" to "Go" column for this row. If all items are acceptable, update "Go" column to "ReadyReview". -->
+
+
+If any problem happens in above steps, add "Error" to "Go" column and summarize the problem in "Comment" column.
