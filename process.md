@@ -98,8 +98,8 @@ If "SdkChangelog" column has a link, it means we have already generated SDK with
 For the services with "VersionNotEqual" status, we need to generate SDK with Swagger spec.
 
 Follow these steps to generate SDK with Swagger spec:
-1) Go to the folder of "tspconfig" column in specs repo, find the commit this config is first created. Go to the "Spec Folder" in specs repo, get the -1 commit ID of that commit and add it to "SpecCommit" column.
-2) Based on this commit ID, check the `specification/{SpecFolder}/resource-manager/readme.md` file. Use "SpecApiVersion" to find pattern like `### Tag: package-{SpecApiVersion}` and extract the whole tag into the "SwaggerTag" column. If there is no such pattern, use the latest tag in the `readme.md` file.
+1) Go to the folder of "tspconfig" column in specs repo, find the commit this config is first created. Go to the `specification/{Spec Folder}` in specs repo, get the -1 commit ID of that commit and add it to "SpecCommit" column.
+2) Based on this commit ID, check the first found `specification/{SpecFolder}/resource-manager/**/readme.md` file. Use "SpecApiVersion" to find pattern like `### Tag: package-{SpecApiVersion}` and extract the whole tag into the "SwaggerTag" column. If there is no such pattern, use the latest tag in the `readme.md` file.
 3) Go to the folder of "SdkFolder" column in sdk repo, edit the `autorest.md` file: add or update the tag in the yaml to `tag: {SwaggerTag}`.
 4) Go to the sdk repo root folder, run `generator release-v2 c:/w/azure-sdk-for-go  c:/w/azure-rest-api-specs {service} {armservice} --skip-generate-example --spec-commit-hash={SpecCommit}`. `{service}` and `{armservice}` could be extracted from "SdkFolder" column. Push the new created branch to remote. Put the link of the `CHANGELOG.md` file from this new branch to "SdkChangelog" column.
 5) Leave a comment in the "SdkPr" with the link of "SdkChangelog" column.
