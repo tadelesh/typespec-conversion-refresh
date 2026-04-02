@@ -16,14 +16,18 @@ Validate Go SDK generation for a converted TypeSpec spec, review the changelog, 
 
 The user provides one of the following:
 
-- **A conversion PR link** from `Azure/azure-rest-api-specs` (e.g. `https://github.com/Azure/azure-rest-api-specs/pull/12345`)
+- **A conversion PR link** (e.g. `https://github.com/Azure/azure-rest-api-specs/pull/12345` or `https://github.com/Azure/azure-rest-api-specs-pr/pull/27607`)
 - **A tspconfig.yaml path** relative to the specs repo (e.g. `specification/network/Network.Management/tspconfig.yaml`)
 - **A tspconfig.yaml URL** on GitHub (e.g. `https://github.com/Azure/azure-rest-api-specs/blob/main/specification/network/Network.Management/tspconfig.yaml`)
 
 ## Required repositories
 
 - [Azure/azure-sdk-for-go](https://github.com/Azure/azure-sdk-for-go), cloned at `../azure-sdk-for-go` (the "sdk repo").
-- [Azure/azure-rest-api-specs](https://github.com/Azure/azure-rest-api-specs), cloned at `../azure-rest-api-specs` (the "specs repo").
+- **Specs repo** — one of the following, determined by the user's input:
+  - [Azure/azure-rest-api-specs](https://github.com/Azure/azure-rest-api-specs), cloned at `../azure-rest-api-specs`
+  - [Azure/azure-rest-api-specs-pr](https://github.com/Azure/azure-rest-api-specs-pr), cloned at `../azure-rest-api-specs-pr`
+
+Decide which specs repo to use based on the PR link or URL the user provides. If the URL contains `azure-rest-api-specs-pr`, use the private repo. Otherwise use the public repo. If the user provides only a tspconfig path without a URL, ask which repo to use.
 
 ## Steps
 
