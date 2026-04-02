@@ -105,9 +105,21 @@ Follow these steps to generate SDK with Swagger spec:
 5) Leave a comment in the "SdkPr" with the link of "SdkChangelog" column.
 6) After all, you need to go back to main for the sdk repo.
 
-<!-- 9. Check changelog in the PR
+10. Check changelog against breaking changes guide
 
-Extract the latest version's changelog from the PR and check each item to see if it is acceptable according to `documentation/development/breaking-changes/sdk-breaking-changes-guide-migration.md` under sdk repo. If there is any undocumented items, add "ManualReview" to "Go" column for this row. If all items are acceptable, update "Go" column to "ReadyReview". -->
+From the PR in "SdkPr" column, extract the latest version's changelog from the `CHANGELOG.md` file in the SDK folder.
+
+**If versions are equal (step 9 was skipped):** review all changelog items from the TypeSpec-generated changelog in the PR.
+
+**If versions are not equal (step 9 was executed):** also extract the latest version's changelog from the swagger-generated `CHANGELOG.md` in step 9. Compare the two changelogs and compute the **diff** — only the items that appear in the TypeSpec changelog but NOT in the swagger changelog need to be reviewed. Items present in both changelogs are caused by the API version difference, not the TypeSpec conversion, and can be ignored.
+
+Read the [breaking changes guide](https://github.com/Azure/azure-sdk-for-go/blob/main/documentation/development/breaking-changes/sdk-breaking-changes-guide-migration.md) (`documentation/development/breaking-changes/sdk-breaking-changes-guide-migration.md` in the sdk repo) and use it to classify each changelog item (or diff item for version-not-equal) into one of:
+
+- **Resolvable** — can be fixed with TypeSpec customizations (e.g. `@@clientName`, `@@clientLocation`, `@@alternateType` in `client.tsp`, or emitter options in `tspconfig.yaml`). Add the resolvable items and their suggested fixes to the "Comment" column.
+- **Acceptable** — expected changes that ship in a new major version. No fix needed.
+
+If there are any resolvable items or any items that cannot be classified, add "ManualReview" to "Go" column for this row.
+If all items are acceptable, update "Go" column to "Done".
 
 
 If any problem happens in above steps, add "Error" to "Go" column and summarize the problem in "Comment" column.
