@@ -19,7 +19,7 @@ The user provides one of the following:
 - **A conversion PR link** (e.g. `https://github.com/Azure/azure-rest-api-specs/pull/12345` or `https://github.com/Azure/azure-rest-api-specs-pr/pull/27607`)
 - **A tspconfig.yaml path** relative to the specs repo (e.g. `specification/network/Network.Management/tspconfig.yaml`)
 - **A tspconfig.yaml URL** on GitHub (e.g. `https://github.com/Azure/azure-rest-api-specs/blob/main/specification/network/Network.Management/tspconfig.yaml`)
-
+- **conversation tag** on GitHub (e.g. package-2025-05-01 in `https://github.com/Azure/azure-rest-api-specs/blob/main/specification/network/resource-manager/Microsoft.Network/Network/readme.md`)
 ## Required repositories
 
 - [Azure/azure-sdk-for-go](https://github.com/Azure/azure-sdk-for-go), cloned at `../azure-sdk-for-go` (the "sdk repo").
@@ -85,7 +85,8 @@ This step generates the SDK from the pre-conversion swagger spec to establish a 
 3) Go to the SDK folder in the sdk repo, edit the `autorest.md` file: add or update the tag in the yaml according to the tag found `tag: {SwaggerTag}`. Also update the `require` URLs in `autorest.md` to point to the SwaggerCommit and the correct readme.md path found in step 2). The readme.md may be in a nested subfolder (e.g., `resource-manager/Microsoft.X/SubFolder/readme.md`) rather than at the `resource-manager/` root.
 4) Go to the sdk repo root folder, run `generator release-v2 {sdk_repo_path} {specs_repo_path} {service} {armservice} --skip-generate-example --spec-commit-hash={SwaggerCommit}`. `{service}` and `{armservice}` can be extracted from the SDK folder path `sdk/resourcemanager/{service}/{armservice}`.
 5) Note the generated `CHANGELOG.md` content from this branch for comparison.
-6) Go back to main branch for the sdk repo.
+6) After generating the swagger baseline, create a new branch from the current branch (e.g. `git checkout -b {armservice}-with-swagger-validation`) and merge the swagger baseline branch into it. This will be the branch used for step 8 to compare the changelog and classify breaking changes.
+7) Go back to main branch for the sdk repo.
 
 ### 7. Generate SDK locally using `generator generate`
 
@@ -98,6 +99,8 @@ generator generate {sdk_repo_path} {specs_repo_path} --tsp-config {tspconfig}
 Where `{tspconfig}` is the relative path to `tspconfig.yaml` from the specs repo root.
 
 If generation fails, report the error and stop.
+
+ After generating the swagger baseline, create a new branch from the current branch (e.g. `git checkout -b {armservice}-with-typespec-validation`) and merge the swagger baseline branch into it. This will be the branch used for step 8 to compare the changelog and classify breaking changes.
 
 ### 8. Check changelog against breaking changes guide
 
