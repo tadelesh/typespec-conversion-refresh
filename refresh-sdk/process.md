@@ -54,7 +54,7 @@ If such a tag exists, add "Done" to "Go" column. Skip all the following steps fo
 
 If "SpecApiVersion" column is existing, it means we have already found the API version for this service. We can skip to next step.
 
-Else, check the folder of "tspconfig" column in specs repo.
+Else, check the folder of "tspconfig" (do not include nested folders) column in specs repo.
 
 Find the first item in `Version` enum. Add it to the "SpecApiVersion" column.
 
@@ -68,6 +68,9 @@ enum Versions {
   ...
 }
 ```
+
+If `Version` enum does not exist, it means this is a multi-service package. Add "multiple-service" to "SpecApiVersion" column.
+
 6. Find SDK API version and update the "SdkApiVersion" column
 
 If "SdkApiVersion" column is existing, it means we have already found the SDK API version for this service. We can skip to next step.
@@ -84,7 +87,7 @@ If "SdkPr" column has a PR link, it means we have already generated the SDK. We 
 
 Else, run the pipeline https://dev.azure.com/azure-sdk/internal/_build?definitionId=7426 via REST API
 - Set "Path to API specification file" as value in "tspconfig" column
-- Set "API version" in "SpecApiVersion" column
+- Set "API version" in "SpecApiVersion" column. If "SpecApiVersion" column has "multiple-service" value, set it as empty.
 - Set "SDK release type" as beta
 - Set "Create SDK pull request" to "true"
 Use the token from Azure CLI to call the REST API of the "dev.azure.com" endpoint (preferably using `az rest` and let Azure CLI handle the token, with `Content-Type=application/json` via `--header`)
@@ -94,6 +97,8 @@ Wait for the pipeline run to complete. Check recent PR on https://github.com/Azu
 9. Generate SDK with Swagger for "VersionNotEqual" services
 
 If "SdkChangelog" column has a link, it means we have already generated SDK with Swagger spec. We can skip to next step.
+
+If "SpecApiVersion" is "multiple-service", it means we cannot determine a single API version for the service. We can skip SDK generation with Swagger and directly go to step 10 to check the changelog.
 
 For the services with "VersionNotEqual" status, we need to generate SDK with Swagger spec.
 

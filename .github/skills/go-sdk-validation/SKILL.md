@@ -51,7 +51,7 @@ Extract folder `sdk/resourcemanager/**/**` according to the module path.
 
 ### 3. Find the TypeSpec API version
 
-Check the TypeSpec folder (where `tspconfig.yaml` is located) in specs repo.
+Check the TypeSpec folder (where `tspconfig.yaml` is located, do not include nested folders) in specs repo.
 
 Find the last item in the `Version` enum. The enum is specified in the `@versioned` decorator, usually in `main.tsp`:
 
@@ -64,6 +64,8 @@ enum Versions {
 }
 ```
 
+If `Version` enum does not exist, it means this is a multi-service package. No single API version can be determined. Continue to the next steps but treat the TypeSpec API version as unknown.
+
 ### 4. Find SDK API version
 
 Check the SDK folder in the sdk repo. The API version can be found in the comment of any operation with the format `// Generated from API version <api-version>` in `xxx_client.go` files.
@@ -75,6 +77,8 @@ Compare the TypeSpec API version (step 3) with the SDK API version (step 4).
 If they are the same, skip to step 7.
 
 If they are different, proceed to step 6 to generate a swagger baseline.
+
+If the TypeSpec API version is unknown (multi-service package), skip swagger baseline generation (step 6) and go directly to step 7.
 
 ### 6. Generate SDK with Swagger for version-not-equal services
 
