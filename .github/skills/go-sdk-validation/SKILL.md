@@ -75,12 +75,15 @@ This step generates the SDK from the pre-conversion swagger spec to establish a 
    2)extract tag from prompt "ConversationTag" for later use. If the user provided a conversation tag, use it as "SwaggerTag" in step 3, and go to step 4. Otherwise, proceed to step 3 to find the tag.
 2. Based on SwaggerCommit, check the first found `specification/{SpecFolder}/resource-manager/**/readme.md` file. Use the TypeSpec API version to find pattern like `### Tag: package-{api-version}` or `### Tag: package-preview-{api-version}` and extract the whole tag as "SwaggerTag". If there is no such pattern, use the latest tag in the `readme.md` file.
 3. Go to the SDK folder in the sdk repo, switch to main branch and reset local repo with `git reset --hard origin/main`, edit the `autorest.md` file: add or update the tag in the yaml according to the tag found `tag: {SwaggerTag}`. Also update the `require` URLs in `autorest.md` to point to the SwaggerCommit and the correct readme.md path found in step 2). The readme.md may be in a nested subfolder (e.g., `resource-manager/Microsoft.X/SubFolder/readme.md`) rather than at the `resource-manager/` root.
-4. Go to the sdk repo root folder, run `generator release-v2 {sdk_repo_path} {specs_repo_path} {service} {armservice} --skip-generate-example`. `{service}` and `{armservice}` can be extracted from the SDK folder path `sdk/resourcemanager/{service}/{armservice}`.
-5. Note the generated `CHANGELOG.md` content from this branch for comparison.
-6. After generating the swagger baseline, create a new branch from the current branch (e.g. `git checkout -b {armservice}-with-swagger-validation-<month>`) and commit changes to this new branch and push it remote. This will be the branch used for step 8 to compare the changelog and classify breaking changes.
-7. Go back to main branch for the sdk repo.
+4. cd to the specs localrepo, and swith to main branch, and reset local repo with `git reset --hard origin/main`
+5. Go to the sdk repo root folder, run `generator release-v2 {sdk_repo_path} {specs_repo_path} {service} {armservice} --skip-generate-example`. `{service}` and `{armservice}` can be extracted from the SDK folder path `sdk/resourcemanager/{service}/{armservice}`.
+6. Note the generated `CHANGELOG.md` content from this branch for comparison.
+7. After generating the swagger baseline, create a new branch from the current branch (e.g. `git checkout -b {armservice}-with-swagger-validation-<month>`) if branch not exists and commit changes to this new branch and push it remote. This will be the branch used for step 8 to compare the changelog and classify breaking changes.
+8. Go back to main branch for the sdk repo.
 
 ### 5. Generate SDK locally using `generator generate`
+
+Run `gh pr checkout {PR_NUMBER}` in the specs repo directory to fetch and checkout the PR branch.
 
 Go to the sdk repo root folder, run:
 
@@ -92,7 +95,7 @@ Where `{tspconfig}` is the relative path to `tspconfig.yaml` from the specs repo
 
 If generation fails, report the error and stop.
 
-After generating the sdk from typespec, create a new branch from the current branch (e.g. `git checkout -b {armservice}-with-typespec-validation-<month>`) and commit changes to this new branch and push it remote. This will be the branch used for step 8 to compare the changelog and classify breaking changes.
+After generating the sdk from typespec, create a new branch from the current branch (e.g. `git checkout -b {armservice}-with-typespec-validation-<month>`) if branch not exists and commit changes to this new branch and push it remote. This will be the branch used for step 8 to compare the changelog and classify breaking changes.
 
 ### 6. Check changelog against breaking changes guide
 
