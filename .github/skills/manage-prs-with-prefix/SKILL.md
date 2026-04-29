@@ -18,7 +18,7 @@ The user provides one of the following:
 - An action, either `list` or `close`
 - Optionally, a repository override if the target is not `Azure/azure-sdk-for-go`
 
-If the user asks to close PRs, treat that as a destructive action and only do it when the request is explicit.
+If the user asks to close PRs, treat that as a destructive action and only do it when the request is explicit. Just deal with the input in a case-insensitive manner.
 
 ## Default repository
 
