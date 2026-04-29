@@ -1,12 +1,12 @@
 ---
-name: manage-migrate-check-typespec-prs
+name: manage-prs-with-prefix
 description: >
   List or close Azure/azure-sdk-for-go pull requests whose titles start with a
-  specific prefix such as [Migrate-Check-TypeSpec] or [Migrate-Check-TypeSpec-mitigate] or [Migrate-Check-Main-Branch]. Uses GitHub CLI with exact
+  specific prefix such as [Migrate-Check-TypeSpec]  or [Migrate-Check-Main-Branch]. Uses GitHub CLI with exact
   prefix matching against currently open pull requests.
 ---
 
-# Manage Migrate-Check-TypeSpec PRs
+# Manage PRs with Prefix
 
 List or close open pull requests in Azure/azure-sdk-for-go by title prefix.
 
@@ -14,7 +14,7 @@ List or close open pull requests in Azure/azure-sdk-for-go by title prefix.
 
 The user provides one of the following:
 
-- A title prefix, for example `[Migrate-Check-TypeSpec]` or `[Migrate-Check-TypeSpec-mitigate]` or `[Migrate-Check-Main-Branch]`
+- A title prefix, for example `[Migrate-Check-TypeSpec]` or `[Migrate-Check-Main-Branch]`
 - An action, either `list` or `close`
 - Optionally, a repository override if the target is not `Azure/azure-sdk-for-go`
 
