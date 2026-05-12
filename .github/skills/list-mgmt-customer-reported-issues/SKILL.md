@@ -105,11 +105,13 @@ If comments requested, produce one string per issue in chronological order:
 Provide either:
 
 - Markdown table in chat, or
-- CSV file with header:
+- Excel file with header:
 
 ```csv
-Issue #,Title,URL,Assignees,Issue Type,Status,Comments
+Issue #,Title,URL,Assignees,Issue Type,Status,CommentsContent, CommmentsCount
 ```
+
+excel file name:azure-sdk-for-go-mgmt-customer-reported-open-issues-02
 
 ## Notes
 
