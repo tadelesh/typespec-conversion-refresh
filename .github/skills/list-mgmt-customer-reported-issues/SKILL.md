@@ -19,8 +19,8 @@ Optional user inputs:
 
 - Repository override (default: `Azure/azure-sdk-for-go`)
 - Whether to include comments in output
-- Whether to save to CSV
-- Output file path (default: `azure-sdk-for-go-mgmt-customer-reported-open-issues.csv`)
+- Whether to save to Excel
+- Output file path (default: `azure-sdk-for-go-mgmt-customer-reported-open-issues-02.xlsx`)
 
 ## Output schema
 
@@ -107,11 +107,9 @@ Provide either:
 - Markdown table in chat, or
 - Excel file with header:
 
-```csv
+```excel
 Issue #,Title,URL,Assignees,Issue Type,Status,CommentsContent, CommmentsCount
 ```
-
-excel file name:azure-sdk-for-go-mgmt-customer-reported-open-issues-02
 
 ## Notes
 
