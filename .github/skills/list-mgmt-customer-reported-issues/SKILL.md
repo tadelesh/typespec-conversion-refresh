@@ -48,7 +48,7 @@ Use this normalized set:
 
 Suggested classification rules:
 
-- If title/body contains `feature request`, `feature`,`request`, `missing field/client` or has label `feature request`, classify as `Feature Request`.
+- If title/body contains `feature request`, `feature`,`request`,`requires api-version`, `missing field/client` or has label `feature request` or `release a new version` in comments, classify as `Feature Request`.
 - If title/body contains `unmarshal`, `marshal`, `serde`, `case-sensitive JSON`, classify as `Serialization Issue`.
 - If issue points to generator/fake transport/autorest output problem, classify as `Code Gen Issue`.
 - If issue indicates that the nil fields in response but defined in spec, classify as `Service Issue`.
@@ -72,7 +72,7 @@ Use this normalized set:
 Suggested classification rules:
 
 If issue is closed or comments indicate resolution, classify as `Resolved`,
-ElseIf issue title/body contains `feature request`, `feature`,`request`, `missing field/client` or has label `feature request`, classify as `Need to release new version`
+ElseIf issue title/body contains `feature request`, `feature`,`request`,`requires api-version`, `missing field/client` or has label `feature request` or `release a new version` in comments, classify as `Need to release new version`
 ElseIf comments indicate issue is being tracked but no active work, classify as `Todo`
 ElseIf comments indicate issue is due to service behavior or spec contract and user is advised to open tickets to related service team, classify as `Suggested user to open tickets to related service to fix specs`
 ElseIf comments indicate active investigation or a PR is linked, classify as `In Progress`
