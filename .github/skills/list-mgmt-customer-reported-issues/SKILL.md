@@ -66,18 +66,19 @@ Use this normalized set:
 - `In Progress`
 - `Resolved`
 - `Need author feedback`
+- `Need Service Attention`
 - `Suggested user to open tickets to related service to fix specs`
 - `Investigating`
 
 Suggested classification rules:
 
-- If there is no label or comments added, classify as `Todo`.
-- If comments indicate active investigation or a PR is linked, classify as `In Progress`.
-- If issue is closed or comments indicate resolution, classify as `Resolved`.
-- if comments indicate waiting on user response, classify as `Need author feedback`.
-- if comments indicate issue is due to service behavior or spec contract and user is advised to open tickets to related service team, classify as `Suggested user to open tickets to related service to fix specs`.
-- if comments indicate issue is under investigation but no progress yet, classify as `Investigating`.
-- if comments indicate issue is being tracked but no active work, classify as `Todo`.
+- If issue is closed or comments indicate resolution, classify as `Resolved`, go to next step.
+- if comments indicate issue is being tracked but no active work, classify as `Todo`, go to next step.
+- if comments indicate issue is due to service behavior or spec contract and user is advised to open tickets to related service team, classify as `Suggested user to open tickets to related service to fix specs`, go to next step.
+- If comments indicate active investigation or a PR is linked, classify as `In Progress`, go to next step.
+- if comments indicate waiting on user response, classify as `Need author feedback`, go to next step.
+- if comments indicate issue is due to service behavior and add label `service attention` at last, classify as `Need Service Attention`, go to next step.
+- if comments indicate issue is under investigation but no progress yet, classify as `Investigating`, go to next step.
 
 ## Steps
 
