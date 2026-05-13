@@ -78,7 +78,8 @@ Suggested classification rules:
 - If comments indicate active investigation or a PR is linked, classify as `In Progress`, go to Steps.
 - if comments indicate waiting on user response, classify as `Need author feedback`, go to Steps.
 - if comments indicate issue is due to service behavior and add label `service attention` at last, classify as `Need Service Attention`, go to Steps.
-- if comments indicate issue is under investigation but no progress yet, classify as `Investigating`, go to Steps.
+- classify as `Investigating`, go to Steps.
+<!-- if comments indicate issue is under investigation but no progress yet -->
 
 ## Steps
 
