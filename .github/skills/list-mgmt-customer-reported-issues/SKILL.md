@@ -87,8 +87,7 @@ gh api repos/Azure/azure-sdk-for-go/issues/<number>/comments --paginate
 
 ### 3. Build Status field
 
-Set `Status` from issue Project Status, for example:
-`Triage`,`Todo`,`In Progress`,`Needs Info`,`Resolved`,`Closed`
+Analyse comments and labels, give conclusions about the issue status, like `need service attention`, `Need author feedback`, `suggest user to open tickets to related service to fix specs`, `Investigating`, `Need to release new version`, etc.
 
 ### 4. Classify issue type
 
