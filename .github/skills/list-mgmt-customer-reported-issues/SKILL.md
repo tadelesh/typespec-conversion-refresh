@@ -32,7 +32,7 @@ Return or save rows with these fields:
 - `Assignees`
 - `Issue Type`
 - `Status` (Analyse comments and labels, set Status value, e.g., `need service attention`, `Need author feedback`, `Suggested user to open tickets to related service to fix specs`, `Investigating`, `Need to release new version`, etc.)
-- `Comments` (single column, ordered by time, optional, and save the comments line by line with timestamp and author)
+<!-- - `Comments` (single column, ordered by time, optional, and save the comments line by line with timestamp and author) -->
 
 ## Issue Type mapping
 
@@ -110,13 +110,13 @@ gh api repos/Azure/azure-sdk-for-go/issues/<number>/comments --paginate
 
 Apply the mapping rules above against title/body/comments context.
 
-### 4. Format comments
+<!-- ### 4. Format comments
 
 If comments requested, produce one string per issue in chronological order:
 
-`[YYYY-MM-DD author] comment text | [YYYY-MM-DD author] comment text ...`
+`[YYYY-MM-DD author] comment text | [YYYY-MM-DD author] comment text ...` -->
 
-### 5. Output
+### 4. Output
 
 Provide either:
 
@@ -124,7 +124,7 @@ Provide either:
 - Excel file with header:
 
 ```excel
-Issue #,Title,URL,Assignees,Issue Type,Status,CommentsContent, CommentsCount
+Issue #,Title,URL,Assignees,Issue Type,Status
 ```
 
 ## Notes
