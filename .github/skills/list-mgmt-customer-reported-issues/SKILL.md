@@ -31,7 +31,7 @@ Return or save rows with these fields:
 - `URL`
 - `Assignees`
 - `Issue Type`
-- `Status` (Analyse comments and labels, set Status value, e.g., `need service attention`, `Need author feedback`, `suggest user to open tickets to related service to fix specs`, `Investigating`, `Need to release new version`, etc.)
+- `Status` (Analyse comments and labels, set Status value, e.g., `need service attention`, `Need author feedback`, `Suggested user to open tickets to related service to fix specs`, `Investigating`, `Need to release new version`, etc.)
 - `Comments` (single column, ordered by time, optional, and save the comments line by line with timestamp and author)
 
 ## Issue Type mapping
@@ -57,6 +57,27 @@ Suggested classification rules:
 - If issue concerns `azcore` pipeline/core abstractions, classify as `Azure Core Issue`.
 - If issue is primarily how-to usage, classify as `Usage Question`.
 - If none clearly applies, use `Issue Type`.
+
+## Status mapping
+
+Use this normalized set:
+
+- `Todo`
+- `In Progress`
+- `Resolved`
+- `Need author feedback`
+- `Suggested user to open tickets to related service to fix specs`
+- `Investigating`
+
+Suggested classification rules:
+
+- If there is no label or comments added, classify as `Todo`.
+- If comments indicate active investigation or a PR is linked, classify as `In Progress`.
+- If issue is closed or comments indicate resolution, classify as `Resolved`.
+- if comments indicate waiting on user response, classify as `Need author feedback`.
+- if comments indicate issue is due to service behavior or spec contract and user is advised to open tickets to related service team, classify as `Suggested user to open tickets to related service to fix specs`.
+- if comments indicate issue is under investigation but no progress yet, classify as `Investigating`.
+- if comments indicate issue is being tracked but no active work, classify as `Todo`.
 
 ## Steps
 
