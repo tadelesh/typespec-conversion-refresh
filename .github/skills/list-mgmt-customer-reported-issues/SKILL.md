@@ -38,7 +38,6 @@ Return or save rows with these fields:
 
 Use this normalized set:
 
-- `Issue Type`
 - `Usage Question`
 - `Code Gen Issue`
 - `Service Issue`
@@ -49,14 +48,13 @@ Use this normalized set:
 
 Suggested classification rules:
 
-- If title/body contains `feature request`, `request`, `missing field/client`, classify as `Feature Request`.
+- If title/body contains `feature request`, `feature`,`request`, `missing field/client` or has label `feature request`, classify as `Feature Request`.
 - If title/body contains `unmarshal`, `marshal`, `serde`, `case-sensitive JSON`, classify as `Serialization Issue`.
 - If issue points to generator/fake transport/autorest output problem, classify as `Code Gen Issue`.
-- If issue points to service behavior/runtime backend mismatch, classify as `Service Issue`.
+- If issue indicates that the nil fields in response but defined in spec, classify as `Service Issue`.
 - If issue points to OpenAPI/TypeSpec/spec contract mismatch, classify as `Spec Issue`.
 - If issue concerns `azcore` pipeline/core abstractions, classify as `Azure Core Issue`.
 - If issue is primarily how-to usage, classify as `Usage Question`.
-- If none clearly applies, use `Issue Type`.
 
 ## Status mapping
 
@@ -69,16 +67,19 @@ Use this normalized set:
 - `Need Service Attention`
 - `Suggested user to open tickets to related service to fix specs`
 - `Investigating`
+- `Need to release new version`
 
 Suggested classification rules:
 
-- If issue is closed or comments indicate resolution, classify as `Resolved`, go to Steps.
-- if comments indicate issue is being tracked but no active work, classify as `Todo`, go to Steps.
-- if comments indicate issue is due to service behavior or spec contract and user is advised to open tickets to related service team, classify as `Suggested user to open tickets to related service to fix specs`, go to Steps.
-- If comments indicate active investigation or a PR is linked, classify as `In Progress`, go to Steps.
-- if comments indicate waiting on user response, classify as `Need author feedback`, go to Steps.
-- if comments indicate issue is due to service behavior and add label `service attention` at last, classify as `Need Service Attention`, go to Steps.
-- classify as `Investigating`, go to Steps.
+If issue is closed or comments indicate resolution, classify as `Resolved`,
+ElseIf issue title/body contains `feature request`, `feature`,`request`, `missing field/client` or has label `feature request`, classify as `Need to release new version`
+ElseIf comments indicate issue is being tracked but no active work, classify as `Todo`
+ElseIf comments indicate issue is due to service behavior or spec contract and user is advised to open tickets to related service team, classify as `Suggested user to open tickets to related service to fix specs`
+ElseIf comments indicate active investigation or a PR is linked, classify as `In Progress`
+ElseIf comments indicate waiting on user response, classify as `Need author feedback`
+ElseIf comments indicate issue is due to service behavior and add label `service attention` at last, classify as `Need Service Attention`
+ElseIf none of the above applies, classify as `Investigating`
+
 <!-- if comments indicate issue is under investigation but no progress yet -->
 
 ## Steps
