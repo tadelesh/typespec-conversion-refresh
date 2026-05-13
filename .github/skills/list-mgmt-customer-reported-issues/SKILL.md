@@ -130,6 +130,8 @@ Provide either:
 Issue #,Title,URL,Assignees,Issue Type,Status
 ```
 
+add summary statistics (e.g. count by issue type/status) if output to Excel.
+
 ## Notes
 
 - Match labels case-insensitively as GitHub normalizes labels, but preserve canonical output form.
