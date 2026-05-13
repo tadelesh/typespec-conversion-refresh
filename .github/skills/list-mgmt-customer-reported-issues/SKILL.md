@@ -31,7 +31,7 @@ Return or save rows with these fields:
 - `URL`
 - `Assignees`
 - `Issue Type`
-- `Status` (Analyse comments and labels, give conclusions about the issue Status, like `need service attention`, `Need author feedback`, `suggest user to open tickets to related service to fix specs`, `Investigating`, `Need to release new version`, etc.)
+- `Status` (Analyse comments and labels, set Status value, e.g., `need service attention`, `Need author feedback`, `suggest user to open tickets to related service to fix specs`, `Investigating`, `Need to release new version`, etc.)
 - `Comments` (single column, ordered by time, optional, and save the comments line by line with timestamp and author)
 
 ## Issue Type mapping
