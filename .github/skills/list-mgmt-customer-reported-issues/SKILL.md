@@ -32,7 +32,7 @@ Return or save rows with these fields:
 - `Assignees`
 - `Issue Type`
 - `Status`
-- `Comments` (single column, ordered by time, optional)
+- `Comments` (single column, ordered by time, optional, and save the comments line by line with timestamp and author)
 
 ## Issue Type mapping
 
@@ -85,10 +85,10 @@ gh api repos/Azure/azure-sdk-for-go/issues/<number>
 gh api repos/Azure/azure-sdk-for-go/issues/<number>/comments --paginate
 ```
 
-### 3. Build status field
+### 3. Build Status field
 
-Set `Status` from labels when available (for example `needs-team-attention`, `needs-triage`, `needs-author-feedback`).
-If no status label exists, use `Open`.
+Set `Status` from issue Project Status, for example:
+`Triage`,`Todo`,`In Progress`,`Needs Info`,`Resolved`,`Closed`
 
 ### 4. Classify issue type
 
