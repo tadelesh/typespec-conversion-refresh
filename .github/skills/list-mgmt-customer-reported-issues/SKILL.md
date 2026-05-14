@@ -15,15 +15,15 @@ List open issues in Azure/azure-sdk-for-go that have both `Mgmt` and `customer-r
 
 ## Output
 
-| Column              | Description                                                            |
-| ------------------- | ---------------------------------------------------------------------- |
-| Issue #             | Issue number                                                           |
-| Title               | Issue title                                                            |
-| URL                 | GitHub issue URL                                                       |
-| Assignees           | Assigned GitHub users                                                  |
-| Issue Type          | Classification of the issue (taxonomy of work)                         |
-| Status              | Where the issue is in handling (based on state, labels, comments, PRs) |
-        |
+| Column     | Description                                                            |
+| ---------- | ---------------------------------------------------------------------- |
+| Issue #    | Issue number                                                           |
+| Title      | Issue title                                                            |
+| URL        | GitHub issue URL                                                       |
+| Assignees  | Assigned GitHub users                                                  |
+| Issue Type | Classification of the issue (taxonomy of work)                         |
+| Status     | Where the issue is in handling (based on state, labels, comments, PRs) |
+|            |
 
 ## Issue Type
 
@@ -39,9 +39,11 @@ List open issues in Azure/azure-sdk-for-go that have both `Mgmt` and `customer-r
 
 ### Decision order
 
+If the condition is met, there's no need to continue the evaluation.
+
 1. **Feature Request override**
-   - Label contains Feature Request
-   - Title contains feature or feature request
+   - Label contains `feature-request`
+   - Title contains `feature` or `feature request`
    - Body asks for a new field
    - Result: Issue Type = Feature Request; Status = Need to release new version
 
@@ -76,7 +78,7 @@ List open issues in Azure/azure-sdk-for-go that have both `Mgmt` and `customer-r
    - Bug + codegen => Code Gen Issue
    - Bug + runtime/service => Service Issue
 
-6. **Title + body keyword fallback**
+6. **Title + body + label keyword fallback**
    - Serialization => Serialization Issue
    - Azure Core => Azure Core Issue
    - Codegen/fakes/regex => Code Gen Issue
@@ -100,6 +102,8 @@ List open issues in Azure/azure-sdk-for-go that have both `Mgmt` and `customer-r
 - Need to release new version
 
 ### Decision order
+
+If the condition is met, there's no need to continue the evaluation.
 
 1. **Feature Request override** => Need to release new version
 2. **Missing field path** => Based on comments
