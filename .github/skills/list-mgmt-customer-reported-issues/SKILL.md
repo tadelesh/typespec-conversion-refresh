@@ -30,13 +30,18 @@ Return or save rows with these fields:
 - `Title`
 - `URL`
 - `Assignees`
-- `Issue Type`
-- `Status` (Analyse comments and labels, set Status value, e.g., `need service attention`, `Need author feedback`, `Suggested user to open tickets to related service to fix specs`, `Investigating`, `Need to release new version`, etc.)
+- `Issue Type` — **what** the thread is about (taxonomy of work); do not use this column for triage workflow.
+- `Status` — **where** the issue is in handling (who waits on whom, or done); derive from `state`, **labels**, **timeline**, and **linked PRs**, not from issue type alone.
+
 <!-- - `Comments` (single column, ordered by time, optional, and save the comments line by line with timestamp and author) -->
 
-## Issue Type mapping
+---
 
-Use this normalized set:
+## Issue Type (accurate classification)
+
+**Principle:** Prefer **explicit GitHub labels** on the issue when they map cleanly; otherwise use **title + body + first maintainer reply** (avoid reclassifying from stale side-thread keywords). `Issue Type` must be **one** value from the list below.
+
+### Allowed values
 
 - `Usage Question`
 - `Code Gen Issue`
@@ -46,19 +51,45 @@ Use this normalized set:
 - `Serialization Issue`
 - `Feature Request`
 
-Suggested classification rules:
+### Step A — Label-first hints (case-insensitive label match)
 
-- If title/body contains `feature request`, `feature`,`request`,`requires api-version`, `missing field/client` or has label `feature request` or `release a new version` in comments, classify as `Feature Request`.
-- If title/body contains `unmarshal`, `marshal`, `serde`, `case-sensitive JSON`, classify as `Serialization Issue`.
-- If issue points to generator/fake transport/autorest output problem, classify as `Code Gen Issue`.
-- If issue indicates that the nil fields in response but defined in spec, classify as `Service Issue`.
-- If issue points to OpenAPI/TypeSpec/spec contract mismatch, classify as `Spec Issue`.
-- If issue concerns `azcore` pipeline/core abstractions, classify as `Azure Core Issue`.
-- If issue is primarily how-to usage, classify as `Usage Question`.
+When any of these labels is present on the issue, set **Issue Type** as follows (first match in this table wins):
 
-## Status mapping
+| Label contains (examples) | Issue Type |
+|---------------------------|------------|
+| `feature`, `feature-request`, `enhancement` | `Feature Request` |
+| `bug` **and** (title/body mentions generator, `autorest`, `codegen`, `fakes`, `mock`, wrong client surface) | `Code Gen Issue` |
+| `bug` **and** (runtime marshal/unmarshal, JSON casing, polymorphic discriminant) | `Serialization Issue` |
+| `bug` **and** (REST returns wrong/absent data vs portal; nil field “in service” but spec says optional/required ambiguity → still often service) | Prefer `Service Issue` unless the thread proves spec text is wrong |
+| `documentation`, `question` **and** no concrete defect | `Usage Question` |
 
-Use this normalized set:
+If **no** label from the table applies, go to Step B.
+
+### Step B — Keyword / content rules (use **title + body**; use comments only to disambiguate)
+
+Apply rules in **strict precedence** (stop at first match):
+
+1. **Serialization Issue** — `unmarshal`, `marshal`, `deserialize`, `serde`, `json`, `case sensitive`, `discriminator`, `AdditionalProperties`, `omitempty`, wrong type on wire vs model.
+2. **Azure Core Issue** — `azcore`, `policy`, `retry`, `transport`, `pipeline`, `credential`, `BearerTokenPolicy`, `logging` in SDK core (not service REST shape).
+3. **Code Gen Issue** — wrong method signature, wrong API version in client, missing operation that **exists in spec**, fake/record/replay tied to generated client, generator bug, wrong polymorphic type **generated** from spec.
+4. **Spec Issue** — contract mismatch **with evidence** that **TypeSpec/OpenAPI/Swagger** text is wrong or inconsistent (e.g. maintainer says “spec fix needed”, links to **spec PR** or `specs` repo issue); not merely “API returns null” without spec proof.
+5. **Service Issue** — runtime/service returns wrong data, throttling, RBAC on service, long-running operation state, **nil** fields where service behavior contradicts user expectation but **spec is not shown as wrong** in thread.
+6. **Feature Request** — asks for new capability, new API version support, new resource type, new client method **not present in spec** / “please add X” without a bug on existing contract.
+7. **Usage Question** — how to call API, sample code, idempotent pattern, **no** confirmed defect after reading body.
+
+### Disambiguation (common mistakes to avoid)
+
+- **Service vs Spec:** If maintainers say “service bug” or “contact RP team” → `Service Issue`. If they say “spec needs update” with spec link → `Spec Issue`. If unclear → `Service Issue` (default) and set Status to reflect investigation.
+- **Code Gen vs Serialization:** Generation/surface of API **vs** encoding of already-correct surface → Serialization wins when wire JSON shape is the topic.
+- **Feature Request vs Usage Question:** “How do I …?” with existing API → Usage Question. “Please support …” new surface → Feature Request.
+
+---
+
+## Status (accurate classification)
+
+**Principle:** `Status` is **workflow**, not issue category. **Never** set status from “feature request” wording alone — that belongs in **Issue Type**. Use **`state`**, **labels**, **last meaningful maintainer comment**, and **linked PRs**.
+
+### Allowed values
 
 - `Todo`
 - `In Progress`
@@ -69,18 +100,53 @@ Use this normalized set:
 - `Investigating`
 - `Need to release new version`
 
-Suggested classification rules:
+### Step 1 — Hard signals (highest priority)
 
-If issue is closed or comments indicate resolution, classify as `Resolved`,
-ElseIf issue title/body contains `feature request`, `feature`,`request`,`requires api-version`, `missing field/client` or has label `feature request` or `release a new version` in comments, classify as `Need to release new version`
-ElseIf comments indicate issue is being tracked but no active work, classify as `Todo`
-ElseIf comments indicate issue is due to service behavior or spec contract and user is advised to open tickets to related service team, classify as `Suggested user to open tickets to related service to fix specs`
-ElseIf comments indicate active investigation or a PR is linked, classify as `In Progress`
-ElseIf comments indicate waiting on user response, classify as `Need author feedback`
-ElseIf comments indicate issue is due to service behavior and add label `service attention` at last, classify as `Need Service Attention`
-ElseIf none of the above applies, classify as `Investigating`
+| Signal | Status |
+|--------|--------|
+| `state` is **closed** (or locked as resolved duplicate) | `Resolved` |
+| Label `need customer response`, `needs author feedback`, `waiting-for-customer`, `more-information-needed` (repo-specific variants) | `Need author feedback` |
+| Label `Service Attention`, `service attention`, `needs-service-attention` | `Need Service Attention` |
+| Maintainer comment explicitly asks user to open **Azure support** / **service team** ticket / ICM and **no** SDK PR linked | `Suggested user to open tickets to related service to fix specs` |
+| **Open** linked PR in `Azure/azure-sdk-for-go` (or comment “fix in PR #…”) fixing this issue | `In Progress` |
+| Maintainer states **next SDK release** will contain fix / cherry-pick merged to release branch | `Need to release new version` |
 
-<!-- if comments indicate issue is under investigation but no progress yet -->
+### Step 2 — Timeline (when Step 1 did not decide)
+
+- Last comment is from **maintainer/bot** asking the **author** for logs, repro, API version, or packet capture → `Need author feedback`.
+- Last comment is from **author** with requested info; no maintainer follow-up in **≥ 14 days** (configurable) → `Todo` or `Need Service Attention` if thread says waiting on service — prefer **`Todo`** unless label says service.
+- Thread shows active investigation (repro confirmed, bisect, cross-link to service issue) but no PR → `Investigating`.
+- Issue assigned and recent maintainer activity without waiting on user → `In Progress`.
+
+### Step 3 — Default
+
+- If open, not waiting on user, no service label, no PR → `Investigating` (not `Todo`) when there was maintainer engagement in last 30 days; otherwise `Todo`.
+
+### Mistakes to avoid
+
+- Do **not** map “feature request” / “missing API” text to **`Need to release new version`** unless a maintainer **committed** to a release or a release PR exists. Otherwise keep **`Investigating`** or **`Todo`** and put “missing capability” under **Issue Type** = `Feature Request`.
+- **`Resolved`** only when closed **or** duplicate with clear resolution pointer — not when discussion merely stalled.
+
+---
+
+## Recommended `gh` data (reduce guesswork)
+
+Always fetch structured fields so labels and state are authoritative:
+
+```sh
+gh issue view <N> --repo Azure/azure-sdk-for-go \
+  --json number,title,state,labels,assignees,body,url,comments,closedAt
+```
+
+For linked PRs (when status might be In Progress):
+
+```sh
+gh pr list --repo Azure/azure-sdk-for-go --search "<N>" --state open --json number,title,url
+```
+
+(Adjust search to `is:linked issue:<N>` patterns supported by your `gh` version, or parse timeline events if needed.)
+
+---
 
 ## Steps
 
@@ -99,8 +165,8 @@ gh api --paginate \
 For each issue number, fetch:
 
 - assignees
-- labels/state for status
-- comment timeline (created order)
+- labels and `state` (for status)
+- body + comment timeline (created order)
 
 Example:
 
@@ -109,17 +175,23 @@ gh api repos/Azure/azure-sdk-for-go/issues/<number>
 gh api repos/Azure/azure-sdk-for-go/issues/<number>/comments --paginate
 ```
 
-### 3. Classify issue type
+Prefer `gh issue view <N> --json ...` for a single JSON payload.
 
-Apply the mapping rules above against title/body/comments context.
+### 3. Classify Issue Type
 
-<!-- ### 4. Format comments
+1. Run **Issue Type → Step A (labels)**.
+2. If unset, run **Step B** in **strict precedence** order.
+3. If still ambiguous, set the **higher-precedence** type from Step B and add a short internal note in chat (not in CSV) explaining the tie-break.
 
-If comments requested, produce one string per issue in chronological order:
+### 4. Classify Status
 
-`[YYYY-MM-DD author] comment text | [YYYY-MM-DD author] comment text ...` -->
+1. Run **Status → Step 1** in table order.
+2. Else **Step 2** (timeline + assignment).
+3. Else **Step 3** default.
 
-### 4. Output
+Re-read **last 2–3 non-bot comments** before finalizing `Need author feedback` vs `Investigating`.
+
+### 5. Output
 
 Provide either:
 
@@ -130,10 +202,11 @@ Provide either:
 Issue #,Title,URL,Assignees,Issue Type,Status
 ```
 
-add summary statistics (e.g. count by issue type/status) if output to Excel.
+Add summary statistics (e.g. count by issue type/status) if output to Excel.
 
 ## Notes
 
-- Match labels case-insensitively as GitHub normalizes labels, but preserve canonical output form.
+- Match labels **case-insensitively** as GitHub normalizes labels, but preserve **canonical output form** in the spreadsheet (Title Case as in allowed lists).
 - Keep CSV cells quoted when they contain commas/newlines.
 - If no issues match, return an empty result with header only.
+- **Issue Type** and **Status** are independent: never copy the same keyword rule to both columns; when in doubt, prefer **labels + state** for Status and **labels + title/body precedence** for Issue Type.
