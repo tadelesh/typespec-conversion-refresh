@@ -55,13 +55,13 @@ Return or save rows with these fields:
 
 When any of these labels is present on the issue, set **Issue Type** as follows (first match in this table wins):
 
-| Label contains (examples) | Issue Type |
-|---------------------------|------------|
-| `feature`, `feature-request`, `enhancement` | `Feature Request` |
-| `bug` **and** (title/body mentions generator, `autorest`, `codegen`, `fakes`, `mock`, wrong client surface) | `Code Gen Issue` |
-| `bug` **and** (runtime marshal/unmarshal, JSON casing, polymorphic discriminant) | `Serialization Issue` |
+| Label contains (examples)                                                                                                                        | Issue Type                                                         |
+| ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| `feature`, `feature-request`, `enhancement`                                                                                                      | `Feature Request`                                                  |
+| `bug` **and** (title/body mentions generator, `autorest`, `codegen`, `fakes`, `mock`, wrong client surface)                                      | `Code Gen Issue`                                                   |
+| `bug` **and** (runtime marshal/unmarshal, JSON casing, polymorphic discriminant)                                                                 | `Serialization Issue`                                              |
 | `bug` **and** (REST returns wrong/absent data vs portal; nil field “in service” but spec says optional/required ambiguity → still often service) | Prefer `Service Issue` unless the thread proves spec text is wrong |
-| `documentation`, `question` **and** no concrete defect | `Usage Question` |
+| `documentation`, `question` **and** no concrete defect                                                                                           | `Usage Question`                                                   |
 
 If **no** label from the table applies, go to Step B.
 
@@ -72,9 +72,9 @@ Apply rules in **strict precedence** (stop at first match):
 1. **Serialization Issue** — `unmarshal`, `marshal`, `deserialize`, `serde`, `json`, `case sensitive`, `discriminator`, `AdditionalProperties`, `omitempty`, wrong type on wire vs model.
 2. **Azure Core Issue** — `azcore`, `policy`, `retry`, `transport`, `pipeline`, `credential`, `BearerTokenPolicy`, `logging` in SDK core (not service REST shape).
 3. **Code Gen Issue** — wrong method signature, wrong API version in client, missing operation that **exists in spec**, fake/record/replay tied to generated client, generator bug, wrong polymorphic type **generated** from spec.
-4. **Spec Issue** — contract mismatch **with evidence** that **TypeSpec/OpenAPI/Swagger** text is wrong or inconsistent (e.g. maintainer says “spec fix needed”, links to **spec PR** or `specs` repo issue); not merely “API returns null” without spec proof.
-5. **Service Issue** — runtime/service returns wrong data, throttling, RBAC on service, long-running operation state, **nil** fields where service behavior contradicts user expectation but **spec is not shown as wrong** in thread.
-6. **Feature Request** — asks for new capability, new API version support, new resource type, new client method **not present in spec** / “please add X” without a bug on existing contract.
+4. **Spec Issue** — contract mismatch **with evidence** that **TypeSpec/OpenAPI/Swagger** text is wrong or inconsistent (e.g. maintainer says “spec fix needed”, links to **spec PR** or `specs` repo issue); not merely “API returns null” without spec proof.Or comments mentions like `Our SDK is auto-generated from service spec` or `It looks like the spec definition is wrong.`
+5. **Service Issue** — runtime/service returns wrong data, throttling, RBAC on service, long-running operation state, **nil** fields where service behavior contradicts user expectation but **spec is not shown as wrong** in thread.Or comments indicates user was advised to open Azure support ticket or contact RP team. Or maintainer says “service team needs to fix” without spec link. Or user says “RP told me to ask here” without spec link. Or issue closed as “service issue” without spec link. Or no spec link but thread shows user confusion about service behavior that is not clearly documented in spec (e.g. “field is optional but service requires it” without spec proof, or “service returns 400 but I think it should be 404” without spec proof). Or title contains `Service Issue`, `Service Bug`, `Service Problem`, `Throttling`, `RBAC`, `LRO`, `Long-running operation`, `Nil field`, `Unexpected null`, `Unexpected empty`, `Unexpected 400`, `Unexpected 500`, `Wrong data from service`, `Service returns X not Y`, `Service behaves unexpectedly` etc. Or labels contain `service`, `service-issue`, `needs-service-attention` but no spec labels and no concrete defect described.
+6. **Feature Request** — asks for new capability, new API version support, new resource type, new client method **not present in spec** / “please add X” without a bug on existing contract.Or title contains `Feature Request`, `Please add`, `Support for X`, `Missing API`, `New API for X`, `Feature` etc.Or labels contain `feature`, `feature-request`, `enhancement` but no bug labels and no concrete defect described.
 7. **Usage Question** — how to call API, sample code, idempotent pattern, **no** confirmed defect after reading body.
 
 ### Disambiguation (common mistakes to avoid)
@@ -102,14 +102,14 @@ Apply rules in **strict precedence** (stop at first match):
 
 ### Step 1 — Hard signals (highest priority)
 
-| Signal | Status |
-|--------|--------|
-| `state` is **closed** (or locked as resolved duplicate) | `Resolved` |
-| Label `need customer response`, `needs author feedback`, `waiting-for-customer`, `more-information-needed` (repo-specific variants) | `Need author feedback` |
-| Label `Service Attention`, `service attention`, `needs-service-attention` | `Need Service Attention` |
-| Maintainer comment explicitly asks user to open **Azure support** / **service team** ticket / ICM and **no** SDK PR linked | `Suggested user to open tickets to related service to fix specs` |
-| **Open** linked PR in `Azure/azure-sdk-for-go` (or comment “fix in PR #…”) fixing this issue | `In Progress` |
-| Maintainer states **next SDK release** will contain fix / cherry-pick merged to release branch | `Need to release new version` |
+| Signal                                                                                                                              | Status                                                           |
+| ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `state` is **closed** (or locked as resolved duplicate)                                                                             | `Resolved`                                                       |
+| Label `need customer response`, `needs author feedback`, `waiting-for-customer`, `more-information-needed` (repo-specific variants) | `Need author feedback`                                           |
+| Label `Service Attention`, `service attention`, `needs-service-attention`                                                           | `Need Service Attention`                                         |
+| Maintainer comment explicitly asks user to open **Azure support** / **service team** ticket / ICM and **no** SDK PR linked          | `Suggested user to open tickets to related service to fix specs` |
+| **Open** linked PR in `Azure/azure-sdk-for-go` (or comment “fix in PR #…”) fixing this issue                                        | `In Progress`                                                    |
+| Maintainer states **next SDK release** will contain fix / cherry-pick merged to release branch                                      | `Need to release new version`                                    |
 
 ### Step 2 — Timeline (when Step 1 did not decide)
 
