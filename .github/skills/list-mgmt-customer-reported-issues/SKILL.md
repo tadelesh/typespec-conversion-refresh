@@ -72,9 +72,9 @@ Apply rules in **strict precedence** (stop at first match):
 1. **Serialization Issue** — `unmarshal`, `marshal`, `deserialize`, `serde`, `json`, `case sensitive`, `discriminator`, `AdditionalProperties`, `omitempty`, wrong type on wire vs model.
 2. **Azure Core Issue** — `azcore`, `policy`, `retry`, `transport`, `pipeline`, `credential`, `BearerTokenPolicy`, `logging` in SDK core (not service REST shape).
 3. **Code Gen Issue** — wrong method signature, wrong API version in client, missing operation that **exists in spec**, fake/record/replay tied to generated client, generator bug, wrong polymorphic type **generated** from spec.
-4. **Spec Issue** — contract mismatch **with evidence** that **TypeSpec/OpenAPI/Swagger** text is wrong or inconsistent (e.g. maintainer says “spec fix needed”, links to **spec PR** or `specs` repo issue); not merely “API returns null” without spec proof.Or comments mentions like `Our SDK is auto-generated from service spec` or `It looks like the spec definition is wrong.`
+4. **Spec Issue** — contract mismatch **with evidence** that **TypeSpec/OpenAPI/Swagger** text is wrong or inconsistent (e.g. maintainer says “spec fix needed”, links to **spec PR** or `specs` repo issue); not merely “API returns null” without spec proof.Or comments similar to `Our SDK is auto-generated from service spec` or `It looks like the spec definition is wrong.`
 5. **Service Issue** — runtime/service returns wrong data, throttling, RBAC on service, long-running operation state, **nil** fields where service behavior contradicts user expectation but **spec is not shown as wrong** in thread.Or comments indicates user was advised to open Azure support ticket or contact RP team. Or maintainer says “service team needs to fix” without spec link. Or user says “RP told me to ask here” without spec link. Or issue closed as “service issue” without spec link. Or no spec link but thread shows user confusion about service behavior that is not clearly documented in spec (e.g. “field is optional but service requires it” without spec proof, or “service returns 400 but I think it should be 404” without spec proof). Or title contains `Service Issue`, `Service Bug`, `Service Problem`, `Throttling`, `RBAC`, `LRO`, `Long-running operation`, `Nil field`, `Unexpected null`, `Unexpected empty`, `Unexpected 400`, `Unexpected 500`, `Wrong data from service`, `Service returns X not Y`, `Service behaves unexpectedly` etc. Or labels contain `service`, `service-issue`, `needs-service-attention` but no spec labels and no concrete defect described.
-6. **Feature Request** — asks for new capability, new API version support, new resource type, new client method **not present in spec** / “please add X” without a bug on existing contract.Or title contains `Feature Request`, `Please add`, `Support for X`, `Missing API`, `New API for X`, `Feature` etc.Or labels contain `feature`, `feature-request`, `enhancement` but no bug labels and no concrete defect described.
+6. **Feature Request** — asks for new capability, new API version support, new resource type, new client method **not present in spec** / “please add X” without a bug on existing contract.Or title contains `Feature Request`, `Please add`, `Support for X`, `Missing API`, `New API for X`, `Feature` etc.Or labels contain `feature`, `feature-request`, `enhancement`
 7. **Usage Question** — how to call API, sample code, idempotent pattern, **no** confirmed defect after reading body.
 
 ### Disambiguation (common mistakes to avoid)
@@ -121,11 +121,6 @@ Apply rules in **strict precedence** (stop at first match):
 ### Step 3 — Default
 
 - If open, not waiting on user, no service label, no PR → `Investigating` (not `Todo`) when there was maintainer engagement in last 30 days; otherwise `Todo`.
-
-### Mistakes to avoid
-
-- Do **not** map “feature request” / “missing API” text to **`Need to release new version`** unless a maintainer **committed** to a release or a release PR exists. Otherwise keep **`Investigating`** or **`Todo`** and put “missing capability” under **Issue Type** = `Feature Request`.
-- **`Resolved`** only when closed **or** duplicate with clear resolution pointer — not when discussion merely stalled.
 
 ---
 
