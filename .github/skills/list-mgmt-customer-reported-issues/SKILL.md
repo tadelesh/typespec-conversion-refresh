@@ -146,6 +146,8 @@ gh issue view <N> --comments --paginate
 - CSV or Excel with headers: Issue #, Title, URL, Assignees, Issue Type, Status
 - Include comments if include_comments=true
 
+- add summary statistics in Excel for triage, e.g. count of issues by type and status from the column H and line 2 to line n, and pivot table for issue type and status.
+
 ## Notes
 
 - Labels matched case-insensitively; preserve canonical Issue Type/Status in output.
