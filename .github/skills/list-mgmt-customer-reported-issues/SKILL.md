@@ -31,15 +31,34 @@ Return or save rows with these fields:
 - `URL`
 - `Assignees`
 - `Issue Type` — **what** the thread is about (taxonomy of work); do not use this column for triage workflow.
-- `Status` — **where** the issue is in handling (who waits on whom, or done); derive from `state`, **labels**, **timeline**, and **linked PRs**, not from issue type alone.
+- `Status` — **where** the issue is in handling (who waits on whom, or done); derive from **`state`**, **labels**, **comments (who said what last)**, and **linked PRs** — not from Issue Type alone.
 
 <!-- - `Comments` (single column, ordered by time, optional, and save the comments line by line with timestamp and author) -->
 
 ---
 
-## Issue Type (accurate classification)
+## Classification inputs (use all of these)
 
-**Principle:** Prefer **explicit GitHub labels** on the issue when they map cleanly; otherwise use **title + body + first maintainer reply** (avoid reclassifying from stale side-thread keywords). `Issue Type` must be **one** value from the list below.
+For **every** issue, base both **Issue Type** and **Status** on the same evidence bundle:
+
+| Source | What to read | Why it matters |
+|--------|----------------|----------------|
+| **Labels** | Full current label set on the issue (case-insensitive match) | Triage intent from repo owners; often authoritative for **Status** |
+| **Title** | Issue title only | Short intent; good for **Issue Type** hint; can mislead if body clarifies |
+| **Body** | First post / description | Fuller repro and keywords; pair with title as **“header text”** |
+| **Comments** | All comments in **chronological order** | Thread evolution; **last substantive maintainer/collaborator comment** often overrides early guesses |
+
+**Comment hygiene**
+
+- Treat **repository collaborators / Microsoft / Azure SDK maintainers** as “maintainer voice” when they state root cause or next step.
+- **Deprioritize** pure automation: `github-actions`, `dependabot`, generic `bot` accounts **unless** the comment only adds a label reference you already verified on the issue.
+- If **title** and **body** disagree, trust **body** for technical detail; if **early comments** and **latest maintainer comment** disagree, trust the **latest maintainer comment** for Issue Type **unless** labels explicitly encode a different triage (then prefer label + maintainer: see conflict rules below).
+
+---
+
+## Issue Type (title + labels + comments + body)
+
+**Principle:** Pick **exactly one** allowed value. Combine **labels** + **title/body keywords** for a first guess, then **refine using comments** (especially explicit maintainer statements). `Issue Type` is **not** workflow.
 
 ### Allowed values
 
@@ -51,43 +70,69 @@ Return or save rows with these fields:
 - `Serialization Issue`
 - `Feature Request`
 
-### Step A — Label-first hints (case-insensitive label match)
+### Decision order (follow in sequence)
 
-When any of these labels is present on the issue, set **Issue Type** as follows (first match in this table wins):
+**Step 1 — Explicit maintainer classification in comments (highest weight for type)**
 
-| Label contains (examples)                                                                                                                        | Issue Type                                                         |
-| ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
-| `feature`, `feature-request`, `enhancement`                                                                                                      | `Feature Request`                                                  |
-| `bug` **and** (title/body mentions generator, `autorest`, `codegen`, `fakes`, `mock`, wrong client surface)                                      | `Code Gen Issue`                                                   |
-| `bug` **and** (runtime marshal/unmarshal, JSON casing, polymorphic discriminant)                                                                 | `Serialization Issue`                                              |
-| `bug` **and** (REST returns wrong/absent data vs portal; nil field “in service” but spec says optional/required ambiguity → still often service) | Prefer `Service Issue` unless the thread proves spec text is wrong |
-| `documentation`, `question` **and** no concrete defect                                                                                           | `Usage Question`                                                   |
+Scan comments **newest → oldest** for the **latest** clear statement from a maintainer/collaborator that names the problem class. If found, map to Issue Type:
 
-If **no** label from the table applies, go to Step B.
+| Maintainer phrasing (examples) | Issue Type |
+|--------------------------------|------------|
+| “spec issue”, “TypeSpec”, “OpenAPI needs”, “swagger fix”, “contract in spec is wrong” | `Spec Issue` |
+| “service bug”, “RP issue”, “resource provider”, “service team”, “backend returns” | `Service Issue` |
+| “codegen”, “generator”, “autorest”, “incorrectly generated”, “client surface wrong vs spec” | `Code Gen Issue` |
+| “serialization”, “unmarshal”, “marshal”, “JSON shape”, “discriminator”, “polymorphic” | `Serialization Issue` |
+| “azcore”, “pipeline”, “retry policy”, “credential”, “transport” (SDK core) | `Azure Core Issue` |
+| “how to”, “by design”, “use this API”, “sample”, no defect | `Usage Question` |
+| “feature”, “enhancement”, “new API version”, “not supported yet”, “request to add” | `Feature Request` |
 
-### Step B — Keyword / content rules (use **title + body**; use comments only to disambiguate)
+If Step 1 matches, **use it**. If a **label** seems to disagree, apply **Step 4** (maintainer comment outranks label unless the maintainer statement is clearly superseded by a **newer** label change explained in comments).
 
-Apply rules in **strict precedence** (stop at first match):
+**Step 2 — Labels (case-insensitive)**
 
-1. **Serialization Issue** — `unmarshal`, `marshal`, `deserialize`, `serde`, `json`, `case sensitive`, `discriminator`, `AdditionalProperties`, `omitempty`, wrong type on wire vs model.
-2. **Azure Core Issue** — `azcore`, `policy`, `retry`, `transport`, `pipeline`, `credential`, `BearerTokenPolicy`, `logging` in SDK core (not service REST shape).
-3. **Code Gen Issue** — wrong method signature, wrong API version in client, missing operation that **exists in spec**, fake/record/replay tied to generated client, generator bug, wrong polymorphic type **generated** from spec.
-4. **Spec Issue** — contract mismatch **with evidence** that **TypeSpec/OpenAPI/Swagger** text is wrong or inconsistent (e.g. maintainer says “spec fix needed”, links to **spec PR** or `specs` repo issue); not merely “API returns null” without spec proof.Or comments similar to `Our SDK is auto-generated from service spec` or `It looks like the spec definition is wrong.`
-5. **Service Issue** — runtime/service returns wrong data, throttling, RBAC on service, long-running operation state, **nil** fields where service behavior contradicts user expectation but **spec is not shown as wrong** in thread.Or comments indicates user was advised to open Azure support ticket or contact RP team. Or maintainer says “service team needs to fix” without spec link. Or user says “RP told me to ask here” without spec link. Or issue closed as “service issue” without spec link. Or no spec link but thread shows user confusion about service behavior that is not clearly documented in spec (e.g. “field is optional but service requires it” without spec proof, or “service returns 400 but I think it should be 404” without spec proof). Or title contains `Service Issue`, `Service Bug`, `Service Problem`, `Throttling`, `RBAC`, `LRO`, `Long-running operation`, `Nil field`, `Unexpected null`, `Unexpected empty`, `Unexpected 400`, `Unexpected 500`, `Wrong data from service`, `Service returns X not Y`, `Service behaves unexpectedly` etc. Or labels contain `service`, `service-issue`, `needs-service-attention` but no spec labels and no concrete defect described.
-6. **Feature Request** — asks for new capability, new API version support, new resource type, new client method **not present in spec** / “please add X” without a bug on existing contract.Or title contains `Feature Request`, `Please add`, `Support for X`, `Missing API`, `New API for X`, `Feature` etc.Or labels contain `feature`, `feature-request`, `enhancement`
-7. **Usage Question** — how to call API, sample code, idempotent pattern, **no** confirmed defect after reading body.
+Apply when Step 1 did **not** yield a maintainer verdict, **or** only to **break ties**:
 
-### Disambiguation (common mistakes to avoid)
+| Condition on labels | Issue Type |
+|---------------------|------------|
+| `feature`, `feature-request`, `enhancement` (and not contradicted by maintainer “this is a bug in spec/service”) | `Feature Request` |
+| `documentation` / `question` **and** header text has no concrete defect | `Usage Question` |
+| `bug` + header/comments show marshal/JSON/discriminator | `Serialization Issue` |
+| `bug` + header/comments show generator/autorest/codegen/fakes | `Code Gen Issue` |
+| `bug` + service/runtime symptoms, no spec-wrong evidence | `Service Issue` |
 
-- **Service vs Spec:** If maintainers say “service bug” or “contact RP team” → `Service Issue`. If they say “spec needs update” with spec link → `Spec Issue`. If unclear → `Service Issue` (default) and set Status to reflect investigation.
-- **Code Gen vs Serialization:** Generation/surface of API **vs** encoding of already-correct surface → Serialization wins when wire JSON shape is the topic.
-- **Feature Request vs Usage Question:** “How do I …?” with existing API → Usage Question. “Please support …” new surface → Feature Request.
+**Step 3 — Header text (title + body) keyword precedence**
+
+Use only if Steps 1–2 insufficient. Apply **first match wins** in this order:
+
+1. **Serialization Issue** — `unmarshal`, `marshal`, `deserialize`, `serde`, `json`, `case sensitive`, `discriminator`, `AdditionalProperties`, `omitempty`, wire vs model mismatch.
+2. **Azure Core Issue** — `azcore`, `policy`, `retry`, `transport`, `pipeline`, `credential`, `BearerTokenPolicy`, `logging` (core SDK, not REST contract).
+3. **Code Gen Issue** — wrong generated surface, wrong API version in client, missing op that **exists in spec**, fakes/mocks tied to codegen.
+4. **Spec Issue** — OpenAPI/TypeSpec/Swagger mismatch **with link or maintainer confirmation** in thread.
+5. **Service Issue** — runtime wrong data, throttling, RBAC, LRO state; nil fields without proven spec error.
+6. **Feature Request** — new capability / new API surface requested.
+7. **Usage Question** — how-to only, no confirmed defect.
+
+**Step 4 — Conflicts (label vs maintainer comment vs title)**
+
+Resolve in this **strict priority**:
+
+1. Latest **maintainer comment** that explicitly classifies root cause (Step 1 table).
+2. **Labels** that encode triage (`Spec Issue` / service attention / question) **if** no newer maintainer comment contradicts them.
+3. **Header text** (body over title) keyword precedence (Step 3).
+
+*Example:* Title says “Bug in SDK” but maintainer writes “spec defines the wrong type” → **`Spec Issue`**, not Code Gen.
+
+### Disambiguation (common mistakes)
+
+- **Service vs Spec:** Maintainer says contact RP / service → `Service Issue`. Maintainer links spec PR or says spec wrong → `Spec Issue`. Only title says “wrong response” → default `Service Issue` until a maintainer specifies spec.
+- **Code Gen vs Serialization:** Wire encoding vs wrong generated method list → Serialization when JSON/model mapping is the topic.
+- **Feature vs Usage:** Title “How to …?” + body shows misunderstanding → `Usage Question`. “Please add client for …” → `Feature Request`.
 
 ---
 
-## Status (accurate classification)
+## Status (labels + comments + title/body for context only)
 
-**Principle:** `Status` is **workflow**, not issue category. **Never** set status from “feature request” wording alone — that belongs in **Issue Type**. Use **`state`**, **labels**, **last meaningful maintainer comment**, and **linked PRs**.
+**Principle:** `Status` answers **who is blocked** and **whether work shipped**. **Do not** infer Status from Issue Type (e.g. Feature Request ≠ Need to release). Use **`state`**, **labels**, then **comment thread** (especially **last human direction**).
 
 ### Allowed values
 
@@ -100,27 +145,56 @@ Apply rules in **strict precedence** (stop at first match):
 - `Investigating`
 - `Need to release new version`
 
-### Step 1 — Hard signals (highest priority)
+### Decision order (follow in sequence)
 
-| Signal                                                                                                                              | Status                                                           |
-| ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| `state` is **closed** (or locked as resolved duplicate)                                                                             | `Resolved`                                                       |
-| Label `need customer response`, `needs author feedback`, `waiting-for-customer`, `more-information-needed` (repo-specific variants) | `Need author feedback`                                           |
-| Label `Service Attention`, `service attention`, `needs-service-attention`                                                           | `Need Service Attention`                                         |
-| Maintainer comment explicitly asks user to open **Azure support** / **service team** ticket / ICM and **no** SDK PR linked          | `Suggested user to open tickets to related service to fix specs` |
-| **Open** linked PR in `Azure/azure-sdk-for-go` (or comment “fix in PR #…”) fixing this issue                                        | `In Progress`                                                    |
-| Maintainer states **next SDK release** will contain fix / cherry-pick merged to release branch                                      | `Need to release new version`                                    |
+**Step 1 — `state` and closure**
 
-### Step 2 — Timeline (when Step 1 did not decide)
+| Signal | Status |
+|--------|--------|
+| `state` is **closed**, or duplicate with resolution noted | `Resolved` |
 
-- Last comment is from **maintainer/bot** asking the **author** for logs, repro, API version, or packet capture → `Need author feedback`.
-- Last comment is from **author** with requested info; no maintainer follow-up in **≥ 14 days** (configurable) → `Todo` or `Need Service Attention` if thread says waiting on service — prefer **`Todo`** unless label says service.
-- Thread shows active investigation (repro confirmed, bisect, cross-link to service issue) but no PR → `Investigating`.
-- Issue assigned and recent maintainer activity without waiting on user → `In Progress`.
+**Step 2 — Labels (case-insensitive)**
 
-### Step 3 — Default
+If issue is **open**, apply **first match** in this table:
 
-- If open, not waiting on user, no service label, no PR → `Investigating` (not `Todo`) when there was maintainer engagement in last 30 days; otherwise `Todo`.
+| Label pattern (examples) | Status |
+|--------------------------|--------|
+| `need customer response`, `needs author feedback`, `waiting-for-customer`, `more-information-needed`, `needs-information` (if used in repo) | `Need author feedback` |
+| `Service Attention`, `service attention`, `needs-service-attention` | `Need Service Attention` |
+
+Issues matched by this skill already carry `customer-reported`; **do not** treat that label alone as “waiting on customer” — pair it with a **feedback** / **information** label or an **open maintainer ask** in comments.
+
+**Step 3 — Comments (newest substantive human comment)**
+
+Read **from newest to oldest**; skip pure bots unless they only mirror labels you already applied in Step 2. Prefer **maintainer/collaborator** voice.
+
+| Comment pattern (examples) | Status |
+|------------------------------|--------|
+| “please provide”, “could you share”, “need repro”, “API version”, “full request/response”, “HAR”, “correlation id”, “?” directed at opener with no reply yet expected | `Need author feedback` |
+| “please open a support ticket”, “contact the service team”, “file with RP”, “ICM”, “Azure support” (and **no** SDK fix PR linked) | `Suggested user to open tickets to related service to fix specs` |
+| “we are investigating”, “looking into”, “reproduced”, “confirmed”, internal thread link, no PR yet | `Investigating` |
+| “fix in PR #…”, “opened PR”, linked `azure-sdk-for-go` PR, cherry-pick | `In Progress` |
+| “will be in next release”, “released in v…”, “package version … fixes”, merge to release branch stated | `Need to release new version` |
+| Maintainer asked for info; **opener replied** with data; **no** maintainer follow-up for **≥ 14 days** | `Todo` (queue) **or** `Need Service Attention` if thread says blocked on service — use label from Step 2 if present |
+| Assigned + recent maintainer progress, not waiting on customer | `In Progress` |
+
+**Step 4 — Title/body only when comments are empty or generic**
+
+If there are **no** useful comments yet:
+
+- Body contains only questions and labels include `question` → `Need author feedback` **or** `Investigating` depending on whether a maintainer has engaged (if **no** maintainer comment at all → `Todo`).
+- Do **not** set `Resolved`, `Need to release new version`, or `Suggested user…` from title/body alone — wait for maintainer comment or label.
+
+**Step 5 — Default for open issues**
+
+- Maintainer engaged recently, no blocker identified → `Investigating`.
+- No maintainer comment yet → `Todo`.
+
+### Mistakes to avoid
+
+- **Need to release new version:** only when a maintainer **states** a release / version **or** a shipping PR exists — **not** because the title mentions “new version” or Issue Type is Feature Request.
+- **Need author feedback:** requires **outstanding ask** to the author (by comment or label). If the **author** spoke last and supplied requested info → **not** this status; use `Todo` / `Investigating` / `In Progress` per Step 3.
+- **Resolved:** closed state only (or duplicate with clear resolution), not “no activity”.
 
 ---
 
@@ -174,17 +248,16 @@ Prefer `gh issue view <N> --json ...` for a single JSON payload.
 
 ### 3. Classify Issue Type
 
-1. Run **Issue Type → Step A (labels)**.
-2. If unset, run **Step B** in **strict precedence** order.
-3. If still ambiguous, set the **higher-precedence** type from Step B and add a short internal note in chat (not in CSV) explaining the tie-break.
+1. Read **labels**, **title**, **body**, and **all comments** (chronological).
+2. Run **Issue Type → Decision order**: Step 1 (maintainer phrasing in comments, newest first) → Step 2 (labels) → Step 3 (title+body keywords) → Step 4 (conflicts).
+3. If still ambiguous after Step 4, pick the best fit from Step 3 and add a **one-line** rationale in chat only (not in the CSV).
 
 ### 4. Classify Status
 
-1. Run **Status → Step 1** in table order.
-2. Else **Step 2** (timeline + assignment).
-3. Else **Step 3** default.
-
-Re-read **last 2–3 non-bot comments** before finalizing `Need author feedback` vs `Investigating`.
+1. Read **`state`** and **labels** first.
+2. Scan **comments newest → oldest** for the **last substantive human** maintainer direction (Step 3 table).
+3. Apply **Decision order** Steps 1–5; use **title/body** only when comments are empty or non-informative (Step 4).
+4. Before finalizing, confirm **`Need author feedback`** matches an **open** ask to the author (comment or label), not merely because the issue is customer-reported.
 
 ### 5. Output
 
@@ -204,4 +277,5 @@ Add summary statistics (e.g. count by issue type/status) if output to Excel.
 - Match labels **case-insensitively** as GitHub normalizes labels, but preserve **canonical output form** in the spreadsheet (Title Case as in allowed lists).
 - Keep CSV cells quoted when they contain commas/newlines.
 - If no issues match, return an empty result with header only.
-- **Issue Type** and **Status** are independent: never copy the same keyword rule to both columns; when in doubt, prefer **labels + state** for Status and **labels + title/body precedence** for Issue Type.
+- **Issue Type** and **Status** are independent: do not set Status from Issue Type keywords (e.g. “feature” in the title).
+- **Primary signals:** for **Issue Type**, prefer **latest maintainer classification in comments**, then **labels**, then **title+body**; for **Status**, prefer **`state` + labels**, then **latest maintainer ask or PR/release language in comments**, then **title/body** only if the thread is still thin.
