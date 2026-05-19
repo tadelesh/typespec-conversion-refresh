@@ -54,7 +54,7 @@ If such a tag exists, add "Done" to "Go" column. Skip all the following steps fo
 
 If "SpecApiVersion" column is existing, it means we have already found the API version for this service. We can skip to next step.
 
-Else, check the folder of "tspconfig" column in specs repo.
+Else, check the folder of "tspconfig" (do not include nested folders) column in specs repo.
 
 Find the first item in `Version` enum. Add it to the "SpecApiVersion" column.
 
@@ -68,6 +68,9 @@ enum Versions {
   ...
 }
 ```
+
+If `Version` enum does not exist, it means this is a multi-service package. Add "multiple-service" to "SpecApiVersion" column.
+
 6. Find SDK API version and update the "SdkApiVersion" column
 
 If "SdkApiVersion" column is existing, it means we have already found the SDK API version for this service. We can skip to next step.
@@ -84,7 +87,7 @@ If "SdkPr" column has a PR link, it means we have already generated the SDK. We 
 
 Else, run the pipeline https://dev.azure.com/azure-sdk/internal/_build?definitionId=7426 via REST API
 - Set "Path to API specification file" as value in "tspconfig" column
-- Set "API version" in "SpecApiVersion" column
+- Set "API version" in "SpecApiVersion" column. If "SpecApiVersion" column has "multiple-service" value, set it as empty.
 - Set "SDK release type" as beta
 - Set "Create SDK pull request" to "true"
 Use the token from Azure CLI to call the REST API of the "dev.azure.com" endpoint (preferably using `az rest` and let Azure CLI handle the token, with `Content-Type=application/json` via `--header`)
@@ -95,13 +98,42 @@ Wait for the pipeline run to complete. Check recent PR on https://github.com/Azu
 
 If "SdkChangelog" column has a link, it means we have already generated SDK with Swagger spec. We can skip to next step.
 
+If "SpecApiVersion" is "multiple-service", it means we cannot determine a single API version for the service. We can skip SDK generation with Swagger and directly go to step 10 to check the changelog.
+
 For the services with "VersionNotEqual" status, we need to generate SDK with Swagger spec.
 
 Follow these steps to generate SDK with Swagger spec:
-1) Go to the folder of "tspconfig" column in specs repo, find the commit this config is first created. Go to the `specification/{Spec Folder}` in specs repo, get the -1 commit ID of that commit and add it to "SpecCommit" column.
+1) In the specs repo, find the **earliest commit that introduced TypeSpec for this service**, considering possible later folder reorganizations:
+
+```powershell
+git log --reverse --diff-filter=A --format=%H -- `
+  "specification/{SpecFolder}/**/*.tsp" `
+  "specification/{SpecFolder}/**/tspconfig.yaml" | Select-Object -First 1
+```
+
+Do **not** rely on `git log --follow tspconfig.yaml` — that returns the most recent folder-refactor commit (e.g. "refactor(svc): migrate to unified folder structure") when the file was later moved, and its parent is **not** the correct swagger baseline.
+
+The correct `SpecCommit` is the commit immediately before (parent of) the original TypeSpec migration commit on `specification/{SpecFolder}`:
+
+```powershell
+$tspMigration = git log --reverse --diff-filter=A --format=%H -- `
+  "specification/{SpecFolder}/**/*.tsp" `
+  "specification/{SpecFolder}/**/tspconfig.yaml" | Select-Object -First 1
+git log "$tspMigration^" -n 1 --format=%H -- specification/{SpecFolder}
+```
+
+Sanity check: the commit date of `SpecCommit` should be **earlier** than the TypeSpec migration. If `SpecCommit` is a generic readme update unrelated to the service (e.g. a bulk emitter config change), that is fine — it just represents the swagger state at the time conversion started.
+
+**Exception — SpecApiVersion postdates migration:** If the desired `SwaggerTag` / `SpecApiVersion` API version did not yet exist at the migration-time commit (e.g., the service migrated to TypeSpec in 2024 but `SpecApiVersion` is `2025-07-01-preview`), the parent-of-first-tsp commit will not contain the needed swagger files. In that case, pick the **most recent commit on `main` that still contains the required `specification/{SpecFolder}/resource-manager/**/<api-version>/*.json` files**. Verify with `git ls-tree -r --name-only <commit> -- specification/{SpecFolder} | Select-String "{api-version}"`. Document the reason in the row's Comment column.
+
+Write the resolved commit hash into the "SpecCommit" column.
+
 2) Based on this commit ID, check the first found `specification/{SpecFolder}/resource-manager/**/readme.md` file. Use "SpecApiVersion" to find pattern like `### Tag: package-{SpecApiVersion}` and extract the whole tag into the "SwaggerTag" column. If there is no such pattern, use the latest tag in the `readme.md` file.
-3) Go to the folder of "SdkFolder" column in sdk repo, edit the `autorest.md` file: add or update the tag in the yaml to `tag: {SwaggerTag}`. Also update the `require` URLs in `autorest.md` to point to the SpecCommit and the correct readme.md path found in step 2). The readme.md may be in a nested subfolder (e.g., `resource-manager/Microsoft.X/SubFolder/readme.md`) rather than at the `resource-manager/` root.
-4) Go to the sdk repo root folder, run `generator release-v2 c:/w/azure-sdk-for-go  c:/w/azure-rest-api-specs {service} {armservice} --skip-generate-example --spec-commit-hash={SpecCommit}`. `{service}` and `{armservice}` could be extracted from "SdkFolder" column. Push the new created branch to remote. Put the link of the `CHANGELOG.md` file from this new branch to "SdkChangelog" column.
+3) Go to the folder of "SdkFolder" column in sdk repo, edit the `autorest.md` file: add or update the tag in the yaml to `tag: {SwaggerTag}`. Also update **both** `require:` URLs in `autorest.md` to point to the SpecCommit and the correct readme.md path found in step 2). The readme.md may be in a nested subfolder (e.g., `resource-manager/Microsoft.X/SubFolder/readme.md`) rather than at the `resource-manager/` root.
+
+**Important:** Existing `require:` URLs in `autorest.md` often contain stale commits from the last AutoRest run (years before TypeSpec migration). Always overwrite both URLs — do not assume the existing values are correct, even if they look plausible.
+
+4) Go to the sdk repo root folder, run `generator release-v2 c:/w/azure-sdk-for-go  c:/w/azure-rest-api-specs {service} {armservice} --skip-generate-example --spec-commit-hash={SpecCommit}`. `{service}` and `{armservice}` could be extracted from "SdkFolder" column. The `--spec-commit-hash` argument is **required** — it is the authoritative input for swagger generation. Verify after the run that the resulting `autorest.md` `require:` URLs contain `{SpecCommit}`; if they do not, the generator did not pick up the override and the run must be repeated. Push the new created branch to remote. Put the link of the `CHANGELOG.md` file from this new branch to "SdkChangelog" column.
 5) Leave a comment in the "SdkPr" with the link of "SdkChangelog" column.
 6) After all, you need to go back to main for the sdk repo.
 
