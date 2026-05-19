@@ -27,6 +27,7 @@ No other input is required. The skill must work for arbitrary GitHub repositorie
 - Do not invent occurrence counts. Counts must come from actual pattern matching across the fetched patches.
 - Exclude comment-only changes from pattern mining and from the final report. Comment cleanup, generated docstring movement, and other non-code comment-only edits must not be listed as recurring code change patterns.
 - Exclude package-reference-only changes from pattern mining and from the final report. Package declarations, import list edits, and module or package path reference rewrites without nearby behavioral code changes must not be listed as recurring code change patterns.
+- For repeated patterns, do not enumerate affected file paths in the final report. Show file-count and block-count only. A concrete file path may be shown only for singleton patterns when it helps anchor the diff block.
 - If the PR has more than ~100 files, do not page only the first 100 — fetch all pages.
 - If `gh` is unavailable or unauthenticated, stop and report the blocker.
 
@@ -105,6 +106,8 @@ Output an inline Markdown report with the following sections:
    - Numbered list of ALL distinct non-comment, non-package-reference patterns, sorted by file-count descending. Include every pattern, even those with file-count = 1. For each:
      - Short pattern name.
      - Category, shape (`replacement` / `deletion` / `addition`), file-count, and block-count.
+   - If `file-count > 1`, do not list changed file paths or sample file paths for that pattern. Use the counts to represent repetition.
+   - If `file-count = 1`, you MAY include the single file path as an anchor, but this is optional.
      - One real diff block copied verbatim, fenced as ```diff with `-`and/or`+`lines and 1–2 lines of context. Pure-deletion blocks must be shown as`-`-only, pure-addition blocks as `+`-only — do not fabricate a counterpart side.
    - To keep the report readable when there are many tail patterns, you MAY group the trailing patterns that have file-count = 1 under a single "## Singleton patterns" subsection, but every singleton pattern must still be listed individually with its own diff block.
    - You MUST output the full numbered list from first pattern to last pattern; do not truncate with wording like "..." or "remaining patterns omitted".
