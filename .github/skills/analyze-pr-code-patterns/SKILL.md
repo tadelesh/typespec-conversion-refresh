@@ -4,12 +4,12 @@ description: >
   Summarize an arbitrary GitHub pull request's file diff by categories and surface
   the recurring before/after code change patterns. Accepts a PR URL such as
   https://github.com/Azure/azure-sdk-for-go/pull/26354 and outputs a deduplicated,
-  GitHub-style diff report inline in chat.
+   GitHub-style diff report inline in chat and writes the same report to a workspace file.
 ---
 
 # Analyze PR Code Change Patterns
 
-Summarize the file diff of any GitHub pull request by file-role categories, then mine and deduplicate the recurring before/after code change patterns. Output an inline Markdown report with categorized counts and real diff hunks copied verbatim from the PR.
+Summarize the file diff of any GitHub pull request by file-role categories, then mine and deduplicate the recurring before/after code change patterns. Output an inline Markdown report with categorized counts and real diff hunks copied verbatim from the PR, and save the same report to a workspace Markdown file.
 
 ## Input
 
@@ -106,9 +106,25 @@ Output an inline Markdown report with the following sections:
 
 Do not omit any pattern. The diff blocks themselves should remain minimal (no unrelated surrounding lines), but the pattern list itself must be exhaustive.
 
+### 6. Write report to file
+
+After composing the Markdown report in Step 5, write it to the workspace root as:
+
+`PR_<pr_number>_code_change_report.md`
+
+Example for PR 26354:
+
+`PR_26354_code_change_report.md`
+
+Rules:
+
+- The file content must match the inline report exactly (no summary-only truncation in the file).
+- Overwrite the same file name if it already exists for that PR number.
+- Keep Markdown valid and preserve all ` ```diff ` blocks verbatim.
+
 ## Final response format
 
-Return ONLY the inline Markdown report described in Step 5. Do not write any files to the workspace.
+Return the inline Markdown report described in Step 5, and include one final line confirming the output file path written in Step 6.
 
 ## Example input
 
