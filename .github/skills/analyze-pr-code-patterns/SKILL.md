@@ -16,6 +16,7 @@ Summarize the file diff of any GitHub pull request by file-role categories, then
 The user provides:
 
 - A PR URL, for example `https://github.com/Azure/azure-sdk-for-go/pull/26354`.
+- Analyse PR code changes， for exmple `deleted、added or replaced code patterns`.
 
 No other input is required. The skill must work for arbitrary GitHub repositories, not just `azure-sdk-for-go`.
 
