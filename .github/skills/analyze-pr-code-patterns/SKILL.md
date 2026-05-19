@@ -25,6 +25,8 @@ No other input is required. The skill must work for arbitrary GitHub repositorie
 - Read-only. Do not push, comment, or modify the PR.
 - Never paraphrase diff content. Diff hunks shown to the user must be copied verbatim from the PR patches.
 - Do not invent occurrence counts. Counts must come from actual pattern matching across the fetched patches.
+- Exclude comment-only changes from pattern mining and from the final report. Comment cleanup, generated docstring movement, and other non-code comment-only edits must not be listed as recurring code change patterns.
+- Exclude package-reference-only changes from pattern mining and from the final report. Package declarations, import list edits, and module or package path reference rewrites without nearby behavioral code changes must not be listed as recurring code change patterns.
 - If the PR has more than ~100 files, do not page only the first 100 — fetch all pages.
 - If `gh` is unavailable or unauthenticated, stop and report the blocker.
 
@@ -71,7 +73,10 @@ For each file's `patch` text:
 
    You MUST capture all three shapes. Do not drop pure-deletion or pure-addition blocks just because they have no counterpart. Some patterns in real PRs (e.g. an entire helper being removed, or a whole `select` / channel setup being deleted) only appear as pure deletions.
 
-3. Normalize each block aggressively so semantically-equivalent variations collapse into one pattern. Apply these rules in order:
+3. Before normalization, filter out **comment-only** change blocks. If every changed line in the block is a comment line, comment delimiter, or blank line after removing the leading `+` / `-`, skip the block entirely. This includes standalone `// ...`, `/* ... */`, `* ...`, `# ...`, HTML comments, doc comment reflow, and generated-comment-only additions or removals. If a block mixes code and comments, keep it and preserve the real diff block verbatim.
+4. Also filter out **package-reference-only** change blocks. If every changed line in the block is only a package declaration, import entry, require/replace/module reference, or a quoted package path/module path reference, skip the block entirely. Examples include Go `package ...` lines, lines inside `import (...)`, standalone import string entries, and versioned package path rewrites such as `/v3` to no-suffix imports. If a block mixes package references with executable code or behavioral API usage changes, keep it.
+
+5. Normalize each block aggressively so semantically-equivalent variations collapse into one pattern. Apply these rules in order:
    - Strip leading/trailing whitespace on each line.
    - Replace API version literals (`\d{4}-\d{2}-\d{2}(?:-preview)?`) with `<APIVER>`.
    - Replace module-path major-version segments like `/v5`, `/v6` with `/v<N>`.
@@ -82,9 +87,9 @@ For each file's `patch` text:
    - Replace bare service-specific Go type names (CamelCase identifiers used as type references) inside type assertions, struct literals, and function parameters with `<TYPE>` when they are clearly tied to the package name (e.g. `AgriServiceClient`, `AgriServiceServerTransport` → `<TYPE>`). Do NOT touch standard library or `azcore` / `arm` / `runtime` types.
    - Preserve operator characters, keywords, control flow, and standard library identifiers so distinct semantic patterns stay distinct.
    - Tag the normalized block with its shape (`replacement`, `deletion`, or `addition`) so the same lines under a different shape do not collapse together.
-4. Count how many files (and how many blocks) each normalized pattern appears in.
-5. List EVERY distinct normalized pattern, sorted by file-count descending then block-count descending. Do not apply a Top-N cap. Patterns that occur only once MUST still be listed at the tail of the report. The only exception is binary or unparseable patches, which are reported separately as a count.
-6. Exhaustive display is mandatory: the final report MUST enumerate all pattern entries. You MUST NOT return only a high-level summary, only top patterns, or an abbreviated sample list.
+6. Count how many files (and how many blocks) each normalized pattern appears in.
+7. List EVERY distinct normalized pattern, sorted by file-count descending then block-count descending. Do not apply a Top-N cap. Patterns that occur only once MUST still be listed at the tail of the report. The only exception is binary or unparseable patches, which are reported separately as a count.
+8. Exhaustive display is mandatory: the final report MUST enumerate all remaining non-comment, non-package-reference pattern entries. You MUST NOT return only a high-level summary, only top patterns, or an abbreviated sample list.
 
 For each pattern, retain ONE real, un-normalized example block to show the user, including its `@@` header and 1–2 lines of surrounding context.
 
@@ -97,7 +102,7 @@ Output an inline Markdown report with the following sections:
 2. **Category breakdown**
    - One row per category from Step 3 with counts and 1 representative file path.
 3. **Recurring code change patterns**
-   - Numbered list of ALL distinct patterns, sorted by file-count descending. Include every pattern, even those with file-count = 1. For each:
+   - Numbered list of ALL distinct non-comment, non-package-reference patterns, sorted by file-count descending. Include every pattern, even those with file-count = 1. For each:
      - Short pattern name.
      - Category, shape (`replacement` / `deletion` / `addition`), file-count, and block-count.
      - One real diff block copied verbatim, fenced as ```diff with `-`and/or`+`lines and 1–2 lines of context. Pure-deletion blocks must be shown as`-`-only, pure-addition blocks as `+`-only — do not fabricate a counterpart side.
@@ -106,7 +111,7 @@ Output an inline Markdown report with the following sections:
 4. **Risk-oriented summary**
    - 2–4 bullet points calling out the patterns most worth reviewing manually (e.g. behavior changes in core source, module path / major-version changes, dependency changes), and which patterns are safe noise (e.g. comment cleanup, doc/log typo fixes).
 
-Do not omit any pattern. The diff blocks themselves should remain minimal (no unrelated surrounding lines), but the pattern list itself must be exhaustive.
+Do not omit any remaining non-comment, non-package-reference pattern. The diff blocks themselves should remain minimal (no unrelated surrounding lines), but the pattern list itself must be exhaustive after comment-only and package-reference-only filtering.
 
 ### 6. Write report to file
 
