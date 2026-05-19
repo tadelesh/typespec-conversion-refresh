@@ -84,6 +84,7 @@ For each file's `patch` text:
    - Tag the normalized block with its shape (`replacement`, `deletion`, or `addition`) so the same lines under a different shape do not collapse together.
 4. Count how many files (and how many blocks) each normalized pattern appears in.
 5. List EVERY distinct normalized pattern, sorted by file-count descending then block-count descending. Do not apply a Top-N cap. Patterns that occur only once MUST still be listed at the tail of the report. The only exception is binary or unparseable patches, which are reported separately as a count.
+6. Exhaustive display is mandatory: the final report MUST enumerate all pattern entries. You MUST NOT return only a high-level summary, only top patterns, or an abbreviated sample list.
 
 For each pattern, retain ONE real, un-normalized example block to show the user, including its `@@` header and 1–2 lines of surrounding context.
 
@@ -101,6 +102,7 @@ Output an inline Markdown report with the following sections:
      - Category, shape (`replacement` / `deletion` / `addition`), file-count, and block-count.
      - One real diff block copied verbatim, fenced as ```diff with `-`and/or`+`lines and 1–2 lines of context. Pure-deletion blocks must be shown as`-`-only, pure-addition blocks as `+`-only — do not fabricate a counterpart side.
    - To keep the report readable when there are many tail patterns, you MAY group the trailing patterns that have file-count = 1 under a single "## Singleton patterns" subsection, but every singleton pattern must still be listed individually with its own diff block.
+   - You MUST output the full numbered list from first pattern to last pattern; do not truncate with wording like "..." or "remaining patterns omitted".
 4. **Risk-oriented summary**
    - 2–4 bullet points calling out the patterns most worth reviewing manually (e.g. behavior changes in core source, module path / major-version changes, dependency changes), and which patterns are safe noise (e.g. comment cleanup, doc/log typo fixes).
 
@@ -125,6 +127,7 @@ Rules:
 ## Final response format
 
 Return the inline Markdown report described in Step 5, and include one final line confirming the output file path written in Step 6.
+Do not replace the full pattern list with a summary response.
 
 ## Example input
 
