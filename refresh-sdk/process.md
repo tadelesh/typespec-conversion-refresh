@@ -2,7 +2,24 @@
 
 ## Status data
 
-The status data is the "releases.csv" file.
+The status data is `status.csv`. Columns (in order):
+
+| # | Column | Description |
+|---|---|---|
+| 1 | Service | Human-readable service name |
+| 2 | ARM Namespace | e.g. `Microsoft.Storage` |
+| 3 | Spec Folder | Top-level folder under `specification/` in the specs repo |
+| 4 | Go | Status — see "Terminal state" |
+| 5 | tspconfig | Relative path to `tspconfig.yaml` in specs repo |
+| 6 | SpecApiVersion | First conversion API version (YYYY-MM-DD or `multiple-service`) |
+| 7 | SdkFolder | e.g. `sdk/resourcemanager/storage/armstorage` |
+| 8 | SdkApiVersion | API version baked into the existing on-disk SDK |
+| 9 | SdkPr | URL of the Go SDK refresh PR (output of step 8) |
+| 10 | SwaggerCommit | Spec-repo commit used in step 9 |
+| 11 | SwaggerTag | Readme tag used in step 9 (e.g. `package-2023-12-01`) |
+| 12 | SdkChangelog | URL of the swagger-generated `CHANGELOG.md` produced in step 9 |
+| 13 | Fix PR | URL of the spec-repo client-customization PR opened in step 11 |
+| 14 | Comment | Free-form notes |
 
 ## Required repositories
 
@@ -32,17 +49,27 @@ For each row in the status data, we will go through below steps.
 
 If "tspconfig" column is existing, it means we have already found the config file for this service. We can skip to next step.
 
-Else, check folder `specification/{SpecFolder}/**/*.Management/**` or `specification/{SpecFolder}/resource-manager/**` in specs repo, find the "tspconfig.yaml"
+Else, search for `tspconfig.yaml` under `specification/{SpecFolder}/`. In order of preference:
+
+1. `specification/{SpecFolder}/**/resource-manager/**/tspconfig.yaml`
+2. `specification/{SpecFolder}/**/*.Management/**/tspconfig.yaml`
+3. Any `tspconfig.yaml` under `specification/{SpecFolder}/`.
+
+If multiple candidates match, prefer the one whose ARM namespace (`name:` in the file or the parent folder name) matches the row's "ARM Namespace" column. If still ambiguous (e.g., shared root folder hosting multiple services such as `containerregistry`, `containerservice`, `azurestackhci`, or `Microsoft.Resources` sub-services like `bicep`/`deployments`/`deploymentStacks`/`resources`/`subscriptions`), pick the candidate whose folder name best matches the row's "Service" / sub-service name.
 
 Add the relative path (from specs repo) to the "tspconfig" column.
 
 If no "tspconfig.yaml" is found, add "NoSpec" to "Go" column, and skip all the following steps for this row.
 
 3. Find generated SDK folder and update the "SdkFolder" column
+
 If "SdkFolder" column is existing, it means we have already found the generated SDK folder for this service. We can skip to next step.
 
-Else, read the `tspconfig.yaml` file found in last step, check the `options/"@azure-tools/typespec-go"/module` property. Resolve the value if it has variable reference.
-Extract folder `sdk/resourcemangager/**/**` according to the module path and put it in "SdkFolder" column.
+Else, read the `tspconfig.yaml` file found in last step, check the `options."@azure-tools/typespec-go".module` property. Resolve any variable references (typically `{service-dir}` and `{package-dir}` which are defined as siblings in the same `options."@azure-tools/typespec-go"` block, or `service-dir` at the top level). Strip the `github.com/Azure/azure-sdk-for-go/` prefix if present, and drop any trailing major-version suffix (e.g. `/v2`).
+
+Extract folder `sdk/resourcemanager/**/**` according to the module path and put it in "SdkFolder" column.
+
+Note: the SDK folder is not always derivable from the spec folder name. For example, `databoxedge` → `sdk/resourcemanager/databoxedge/armdataboxedge`, `management/Microsoft.Management/ServiceGroups` → `sdk/resourcemanager/management/armmanagement`, `resources/.../databoundaries` → `sdk/resourcemanager/databoundaries/armdataboundaries`. Always read the `module` property; do not guess from folder names.
 
 4. Check if the Go SDK is already generated from TypeSpec
 
@@ -85,14 +112,32 @@ Compare the API version in "SpecApiVersion" column with "SdkApiVersion" column. 
 
 If "SdkPr" column has a PR link, it means we have already generated the SDK. We can skip to next step.
 
-Else, run the pipeline https://dev.azure.com/azure-sdk/internal/_build?definitionId=7426 via REST API
-- Set "Path to API specification file" as value in "tspconfig" column
-- Set "API version" in "SpecApiVersion" column. If "SpecApiVersion" column has "multiple-service" value, set it as empty.
-- Set "SDK release type" as beta
-- Set "Create SDK pull request" to "true"
-Use the token from Azure CLI to call the REST API of the "dev.azure.com" endpoint (preferably using `az rest` and let Azure CLI handle the token, with `Content-Type=application/json` via `--header`)
+Else, trigger pipeline https://dev.azure.com/azure-sdk/internal/_build?definitionId=7426 via the Azure DevOps Pipelines REST API. Use the token from Azure CLI to call the REST API of the "dev.azure.com" endpoint (preferably using `az rest` and let Azure CLI handle the token, with `Content-Type=application/json` via `--header`).
 
-Wait for the pipeline run to complete. Check recent PR on https://github.com/Azure/azure-sdk-for-go/pulls, find "[AutoPR sdk-{SdkFolder}]*", replace "AutoPR" with "Refresh" for the PR title, and add the link of PR to "SdkPr" column.
+- Endpoint: `POST https://dev.azure.com/azure-sdk/internal/_apis/pipelines/7426/runs?api-version=7.1-preview.1`
+- Resource id for `az rest --resource`: `499b84ac-1321-427f-aa17-267ca6975798`
+- Body shape:
+
+```json
+{
+  "resources": { "repositories": { "self": { "refName": "refs/heads/main" } } },
+  "templateParameters": {
+    "SdkReleaseType": "beta",
+    "CreatePullRequest": true,
+    "ApiVersion": "<SpecApiVersion>",
+    "ConfigPath": "<tspconfig path>",
+    "ConfigType": "TypeSpec"
+  }
+}
+```
+
+- `ApiVersion` should be the YYYY-MM-DD form of `SpecApiVersion` (or empty when `SpecApiVersion` is "multiple-service").
+- `ConfigPath` is the value from the "tspconfig" column.
+- Pass the JSON via `--body "@<file>"` rather than inline to avoid quoting issues.
+
+Poll `GET https://dev.azure.com/azure-sdk/internal/_apis/pipelines/7426/runs/{runId}?api-version=7.1-preview.1` every 60–90 s until `state == "completed"`. Typical run takes 5–10 minutes.
+
+Once complete, find the new PR on https://github.com/Azure/azure-sdk-for-go/pulls (search title `"[AutoPR sdk-{SdkFolder}]*-{runId}"`), rename the title prefix `[AutoPR …]` → `[Refresh …]` (`gh pr edit <num> --repo Azure/azure-sdk-for-go --title …`), and put the PR URL in "SdkPr".
 
 9. Generate SDK with Swagger for "VersionNotEqual" services
 
@@ -153,5 +198,43 @@ Read the [breaking changes guide](https://github.com/Azure/azure-sdk-for-go/blob
 If there are any resolvable items or any items that cannot be classified, add "ManualReview" to "Go" column for this row.
 If all items are acceptable, update "Go" column to "Done".
 
+Common acceptable patterns observed from previous refresh runs (no customization needed):
+
+- `ARMBaseModel` (or other generated base resource) struct removed and its fields (`ID`, `Name`, `Type`, `SystemData`) inlined into the resource struct. This is the standard TypeSpec emitter pattern.
+- New `SystemData` field appearing on resource structs after `ARMBaseModel` removal — compensation for the inlining above.
+- Structs/operations only present in older swagger API versions that are no longer in the spec for the new API version (an API-version delta, not a TypeSpec conversion artifact).
+- Pure additive features (new fields, new properties on existing structs).
+
+11. Apply client customizations and open Fix PR in spec repo
+
+If step 10 produced one or more **Resolvable** items, apply the suggested TypeSpec customizations in the specs repo:
+
+1) In the specs repo, create a new branch off `main` named `refresh/{SpecFolder}-customization` (or similar — keep it scoped to a single tspconfig folder so the fix PR is small).
+2) Edit `client.tsp` in the same folder as the tspconfig (create it if it does not exist). Apply customizations per the [breaking changes guide](https://github.com/Azure/azure-sdk-for-go/blob/main/documentation/development/breaking-changes/sdk-breaking-changes-guide-migration.md). Typical fixes:
+   - `@@clientName(Original, "New", "go")` — rename a model, operation, or parameter for the Go client only.
+   - `@@clientLocation(Operation, NewInterface, "go")` — move an operation to a different client/interface.
+   - `@@alternateType(Property, NewType, "go")` — change a property's type in the Go client.
+   - Adjust `options."@azure-tools/typespec-go"` in `tspconfig.yaml` (e.g. `module`, `head-as-boolean`, `single-client`) for emitter-level fixes.
+3) Commit and push the branch, then open a PR against `Azure/azure-rest-api-specs:main`. Title format: `Refresh client customization for {Service}`.
+4) Put the PR URL in the **"Fix PR"** column.
+5) After the Fix PR is merged, re-run step 8 (regenerate via pipeline) and step 10 (re-classify). When all items are acceptable, set "Go" to "Done".
+
+If step 10 produced no resolvable items, leave the "Fix PR" column empty.
 
 If any problem happens in above steps, add "Error" to "Go" column and summarize the problem in "Comment" column.
+
+## Status verification
+
+When auditing existing rows (re-deriving "Go" from on-disk state), apply the strict rule from step 4 against both the spec repo and the SDK repo at HEAD on `main`:
+
+- `Done` ⇔ `tsp-location.yaml` exists under `SdkFolder` **AND** tag `sdk/resourcemanager/{service}/{armmodule}/v{latest_CHANGELOG_version}` exists in the SDK repo.
+- `AlreadyTypeSpec` ⇔ `tsp-location.yaml` exists, no matching tag.
+- `NoSpec` ⇔ no `tspconfig.yaml` anywhere under `specification/{SpecFolder}/`.
+- `ManualReview` is preserved only when "SdkPr" is set (a refresh attempt was made and required manual analysis).
+- Otherwise the row is "needs processing" (empty "Go").
+
+Common false-positive sources to watch for:
+
+- An open/unmerged refresh PR makes the row appear "not Done" on `main` even though step 10 was completed. Strict re-audit will demote it to empty; this is correct — the row will return to Done after the PR merges and a release tag is published.
+- Renamed spec folders (e.g. `web/certificationregistration` → `certificateregistration`, `web/domainregistration` → `domainregistration`). When matching against external sources keep both names as aliases.
+- A single spec folder shared by multiple services (e.g. `containerregistry`, `azurestackhci`, `containerservice` each have multiple sub-services). When filtering rows by spec folder, do not assume one row per folder.
