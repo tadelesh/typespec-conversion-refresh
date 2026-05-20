@@ -47,6 +47,13 @@ Example requests the skill should understand:
 | Status     | Where the issue is in handling (based on state, labels, comments, PRs) |
 |            |
 
+When the output format is Excel, the workbook must also include a summary section or summary worksheet with aggregated counts for:
+
+- Issue Type => count of issues per Issue Type
+- Status => count of issues per Status
+
+If practical, also include a cross-tab or pivot-style table of Issue Type by Status for triage.
+
 ## Issue Type
 
 ### Allowed values
@@ -167,8 +174,8 @@ gh issue view <N> --comments --paginate
 
 - CSV or Excel with headers: Issue #, Title, URL, Assignees, Issue Type, Status
 - Include comments if include_comments=true
-
-- add summary statistics in Excel for triage, e.g. count of issues by type and status from the column H and line 2 to line n, and pivot table for issue type and status.
+- If the output format is Excel, include summary counts by Issue Type and by Status in the workbook.
+- If practical, include a pivot-style summary of Issue Type by Status for triage.
 
 ## Notes
 
@@ -176,4 +183,4 @@ gh issue view <N> --comments --paginate
 - Latest maintainer comment overrides labels.
 - Feature Request and Missing Field paths have highest priority.
 - Optional comments include timestamp, author, text in chronological order.
-- Can add summary statistics in Excel for triage.
+- Excel output should include explicit aggregated statistics for Issue Type and Status, not just the raw issue rows.
