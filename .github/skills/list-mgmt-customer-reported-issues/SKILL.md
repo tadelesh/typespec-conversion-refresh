@@ -54,6 +54,13 @@ When the output format is Excel, the workbook must also include a summary sectio
 
 If practical, also include a cross-tab or pivot-style table of Issue Type by Status for triage.
 
+The summary must be explicit and category-complete:
+
+- Emit one row per allowed Issue Type with columns `Issue Type` and `Count`, even when the count is `0`
+- Emit one row per allowed Status with columns `Status` and `Count`, even when the count is `0`
+- Counts must be derived from the final classified issue rows, not from label frequencies or partial intermediate results
+- Do not collapse multiple canonical values into an `Other` bucket
+
 ## Issue Type
 
 ### Allowed values
@@ -175,6 +182,8 @@ gh issue view <N> --comments --paginate
 - CSV or Excel with headers: Issue #, Title, URL, Assignees, Issue Type, Status
 - Include comments if include_comments=true
 - If the output format is Excel, include summary counts by Issue Type and by Status in the workbook.
+- The summary worksheet must contain separate tables for `Issue Type => Count` and `Status => Count` using the canonical allowed values listed in this skill.
+- The summary tables must count all classified rows and should include zero-count categories so the totals are auditable.
 - If practical, include a pivot-style summary of Issue Type by Status for triage.
 
 ## Notes
@@ -184,3 +193,4 @@ gh issue view <N> --comments --paginate
 - Feature Request and Missing Field paths have highest priority.
 - Optional comments include timestamp, author, text in chronological order.
 - Excel output should include explicit aggregated statistics for Issue Type and Status, not just the raw issue rows.
+- Summary counts should reconcile exactly with the exported issue rows. For example, the sum of all Issue Type counts must equal the number of exported issues, and the sum of all Status counts must equal the number of exported issues.
