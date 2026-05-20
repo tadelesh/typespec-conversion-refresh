@@ -6,12 +6,34 @@ List open issues in Azure/azure-sdk-for-go that have both `Mgmt` and `customer-r
 
 ## Input
 
-| Parameter        | Type    | Default                                                     | Description                               |
-| ---------------- | ------- | ----------------------------------------------------------- | ----------------------------------------- |
-| repository       | string  | Azure/azure-sdk-for-go                                      | Repository to scan                        |
-| include_comments | boolean | false                                                       | Whether to include comments in the output |
-| save_to_excel    | boolean | true                                                        | Whether to save output as Excel file      |
-| output_path      | string  | azure-sdk-for-go-mgmt-customer-reported-open-issues-02.xlsx | Output file path                          |
+The user can provide the request in natural language or as explicit parameters.
+
+Accepted input fields:
+
+| Parameter        | Type    | Default                                                  | Description                                                                                                           |
+| ---------------- | ------- | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| repository       | string  | Azure/azure-sdk-for-go                                   | Repository to scan. Accept `owner/repo`, a GitHub repository URL, or omit it to use the default.                      |
+| include_comments | boolean | false                                                    | Include all issue comments in chronological order. Accept `true/false`, `yes/no`, or phrases such as `with comments`. |
+| save_to_excel    | boolean | true                                                     | Save the result as an Excel workbook. If `false`, produce CSV unless the user explicitly asks for another format.     |
+| output_path      | string  | azure-sdk-for-go-mgmt-customer-reported-open-issues.xlsx | Output file path. If omitted, derive the extension from the selected format.                                          |
+| output_format    | string  | excel                                                    | Optional explicit format override. Allowed values: `excel`, `xlsx`, `csv`.                                            |
+
+Interpret the input using these rules:
+
+1. Use `Azure/azure-sdk-for-go` unless the user explicitly names another repository.
+2. Treat repository, format, and boolean-like values case-insensitively.
+3. If the user asks for comments, set `include_comments=true` even if they do not use the parameter name.
+4. If the user asks for CSV, set `save_to_excel=false` and `output_format=csv`.
+5. If the user asks for Excel or `.xlsx`, set `save_to_excel=true` and `output_format=excel`.
+6. If the user provides `output_path`, preserve it, but ensure its file extension matches the final output format unless the user explicitly insists otherwise.
+7. If the user does not mention format, default to Excel.
+
+Example requests the skill should understand:
+
+- `List Mgmt + customer-reported open issues in Azure/azure-sdk-for-go`
+- `List Mgmt/customer-reported issues with all comments and save to CSV`
+- `Export Mgmt customer-reported issues from Azure/azure-sdk-for-go to d:/temp/issues.xlsx`
+- `List Mgmt and customer-reported open issues in owner/repo with comments`
 
 ## Output
 
