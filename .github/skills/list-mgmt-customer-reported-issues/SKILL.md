@@ -32,7 +32,7 @@ Example requests the skill should understand:
 
 - `List Mgmt + customer-reported open issues in Azure/azure-sdk-for-go`
 - `List Mgmt/customer-reported issues with all comments and save to CSV`
-- `Export Mgmt customer-reported issues from Azure/azure-sdk-for-go to d:/temp/issues.xlsx`
+- `Export Mgmt customer-reported open issues from Azure/azure-sdk-for-go and save the Excel file to d:/temp/issues.xlsx`
 - `List Mgmt and customer-reported open issues in owner/repo with comments`
 
 ## Output
