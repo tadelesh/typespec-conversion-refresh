@@ -131,7 +131,7 @@ Else, trigger pipeline https://dev.azure.com/azure-sdk/internal/_build?definitio
 }
 ```
 
-- `ApiVersion` should be the YYYY-MM-DD form of `SpecApiVersion` (or empty when `SpecApiVersion` is "multiple-service").
+- `ApiVersion` should be the YYYY-MM-DD form of `SpecApiVersion`. When `SpecApiVersion` is "multiple-service", **omit the `ApiVersion` parameter entirely** (do not pass an empty string — the pipeline rejects empty values with `"The 'ApiVersion' parameter is not a valid String."`).
 - `ConfigPath` is the value from the "tspconfig" column.
 - Pass the JSON via `--body "@<file>"` rather than inline to avoid quoting issues.
 
@@ -179,6 +179,8 @@ Write the resolved commit hash into the "SpecCommit" column.
 **Important:** Existing `require:` URLs in `autorest.md` often contain stale commits from the last AutoRest run (years before TypeSpec migration). Always overwrite both URLs — do not assume the existing values are correct, even if they look plausible.
 
 4) Go to the sdk repo root folder, run `generator release-v2 c:/w/azure-sdk-for-go  c:/w/azure-rest-api-specs {service} {armservice} --skip-generate-example --spec-commit-hash={SpecCommit}`. `{service}` and `{armservice}` could be extracted from "SdkFolder" column. The `--spec-commit-hash` argument is **required** — it is the authoritative input for swagger generation. Verify after the run that the resulting `autorest.md` `require:` URLs contain `{SpecCommit}`; if they do not, the generator did not pick up the override and the run must be repeated. Push the new created branch to remote. Put the link of the `CHANGELOG.md` file from this new branch to "SdkChangelog" column.
+
+**Important:** The 3rd positional arg `{service}` is interpreted as **both** the SDK service folder name **and** the spec RP/folder name. When they differ (e.g. SDK `appcontainers` ↔ spec `app`; SDK `kusto` ↔ spec `azure-kusto`; SDK `devhub` ↔ spec `developerhub`; SDK `virtualmachineimagebuilder` ↔ spec `imagebuilder`), you **must** pass `--spec-rp-name={spec_folder}` or autorest will fail with `Could not read 'https://github.com/.../specification/{sdk_service}/...'` because the URL it constructs ignores `require:` in autorest.md.
 5) Leave a comment in the "SdkPr" with the link of "SdkChangelog" column.
 6) After all, you need to go back to main for the sdk repo.
 
@@ -200,7 +202,8 @@ If all items are acceptable, update "Go" column to "Done".
 
 Common acceptable patterns observed from previous refresh runs (no customization needed):
 
-- `ARMBaseModel` (or other generated base resource) struct removed and its fields (`ID`, `Name`, `Type`, `SystemData`) inlined into the resource struct. This is the standard TypeSpec emitter pattern.
+- `ARMBaseModel` (or other generated base resource) struct removed and its fields (`ID`, `Name`, `Type`, `SystemData`) inlined into the resource struct. This is the standard TypeSpec emitter pattern. The same logic applies to other base resource structs: `Resource`, `ProxyResource`, `TrackedResource`, `AzureEntityResource`.
+- Common error model structs removed: `ErrorResponse`, `ErrorDetail`, `ErrorDetails`, `ErrorAdditionalInfo`. The TS emitter now uses `azcore.ResponseError`/inlined error types; consumers of these structs need to migrate but no spec-side fix is needed.
 - New `SystemData` field appearing on resource structs after `ARMBaseModel` removal — compensation for the inlining above.
 - Structs/operations only present in older swagger API versions that are no longer in the spec for the new API version (an API-version delta, not a TypeSpec conversion artifact).
 - Pure additive features (new fields, new properties on existing structs).
@@ -216,6 +219,8 @@ If step 10 produced one or more **Resolvable** items, apply the suggested TypeSp
    - `@@alternateType(Property, NewType, "go")` — change a property's type in the Go client.
    - Adjust `options."@azure-tools/typespec-go"` in `tspconfig.yaml` (e.g. `module`, `head-as-boolean`, `single-client`) for emitter-level fixes.
 3) Commit and push the branch, then open a PR against `Azure/azure-rest-api-specs:main`. Title format: `Refresh client customization for {Service}`.
+
+**Warning:** Many spec folders already have a `back-compatible.tsp` (or similar `client.tsp`) with carefully-tuned customizations spanning multiple language emitters (`@@clientLocation(..., "!javascript")`, `@@clientName(..., "go")`, etc.). Before editing, read the existing file end-to-end. Add **go-specific** lines (`"go"` as the 3rd argument) rather than modifying broad `"!javascript"`/`"!python"` lines that other languages depend on. If unsure, leave the row as `ManualReview` and document the proposed change in the Comment column for the service team to review.
 4) Put the PR URL in the **"Fix PR"** column.
 5) After the Fix PR is merged, re-run step 8 (regenerate via pipeline) and step 10 (re-classify). When all items are acceptable, set "Go" to "Done".
 
